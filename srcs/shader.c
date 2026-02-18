@@ -1,13 +1,14 @@
+#include "../glad/include/glad/glad.h"
 #include "shader.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "../glad/include/glad/glad.h"
 
 static char	*read_file(const char *path)
 {
 	FILE	*file;
 	char	*buffer;
 	long	size;
+	long	bytes_read;
 
 	file = fopen(path, "rb");
 	if (!file)
@@ -24,86 +25,91 @@ static char	*read_file(const char *path)
 		fclose(file);
 		return (NULL);
 	}
-	fread(buffer, 1, size, file);
+	bytes_read = fread(buffer, 1, size, file);
+	if (bytes_read != size)
+	{
+		fprintf(stderr, "Error reading file\n");
+		fclose(file);
+		free(buffer);
+		return (NULL);
+	}
 	buffer[size] = 0;
 	fclose(file);
 	return (buffer);
 }
 
-static uint32_t compile(GLenum type, const char *source)
+static uint32_t	compile(GLenum type, const char *source)
 {
-    uint32_t shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, NULL);
-    glCompileShader(shader);
+	uint32_t	shader;
+	int			success;
+	char		log[1024];
 
-    int success;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-
-    if (!success)
-    {
-        char log[1024];
-        glGetShaderInfoLog(shader, 1024, NULL, log);
-        printf("Shader compile error:\n%s\n", log);
-        exit(1);
-    }
-
-    return shader;
+	shader = glCreateShader(type);
+	glShaderSource(shader, 1, &source, NULL);
+	glCompileShader(shader);
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+	if (!success)
+	{
+		glGetShaderInfoLog(shader, 1024, NULL, log);
+		printf("Shader compile error:\n%s\n", log);
+		exit(1);
+	}
+	return (shader);
 }
 
-uint32_t shader_create_compute(const char *path)
+uint32_t	shader_create_compute(const char *path)
 {
-    char *src = read_file(path);
-    uint32_t cs = compile(GL_COMPUTE_SHADER, src);
-    free(src);
+	char		*src;
+	uint32_t	cs;
+	uint32_t	program;
+	int			success;
+	char		log[1024];
 
-    uint32_t program = glCreateProgram();
-    glAttachShader(program, cs);
-    glLinkProgram(program);
-
-    int success;
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-
-    if (!success)
-    {
-        char log[1024];
-        glGetProgramInfoLog(program, 1024, NULL, log);
-        printf("Compute link error:\n%s\n", log);
-        exit(1);
-    }
-
-    glDeleteShader(cs);
-    return program;
+	src = read_file(path);
+	cs = compile(GL_COMPUTE_SHADER, src);
+	free(src);
+	program = glCreateProgram();
+	glAttachShader(program, cs);
+	glLinkProgram(program);
+	glGetProgramiv(program, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+		glGetProgramInfoLog(program, 1024, NULL, log);
+		printf("Compute link error:\n%s\n", log);
+		exit(1);
+	}
+	glDeleteShader(cs);
+	return (program);
 }
 
-uint32_t shader_create_graphics(const char *vert_path, const char *frag_path)
+uint32_t	shader_create_graphics(const char *vert_path, const char *frag_path)
 {
-    char *vsrc = read_file(vert_path);
-    char *fsrc = read_file(frag_path);
+	char		*vsrc;
+	char		*fsrc;
+	uint32_t	vs;
+	uint32_t	fs;
+	uint32_t	program;
+	int			success;
+	char		log[1024];
 
-    uint32_t vs = compile(GL_VERTEX_SHADER, vsrc);
-    uint32_t fs = compile(GL_FRAGMENT_SHADER, fsrc);
-
-    free(vsrc);
-    free(fsrc);
-
-    uint32_t program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-
-    int success;
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-
-    if (!success)
-    {
-        char log[1024];
-        glGetProgramInfoLog(program, 1024, NULL, log);
-        printf("Program link error:\n%s\n", log);
-        exit(1);
-    }
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-
-    return program;
+	vsrc = read_file(vert_path);
+	fsrc = read_file(frag_path);
+	vs = compile(GL_VERTEX_SHADER, vsrc);
+	fs = compile(GL_FRAGMENT_SHADER, fsrc);
+	free(vsrc);
+	free(fsrc);
+	program = glCreateProgram();
+	glAttachShader(program, vs);
+	glAttachShader(program, fs);
+	glLinkProgram(program);
+	glGetProgramiv(program, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+		glGetProgramInfoLog(program, 1024, NULL, log);
+		printf("Program link error:\n%s\n", log);
+		exit(1);
+	}
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+	return (program);
 }
