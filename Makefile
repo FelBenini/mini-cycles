@@ -5,7 +5,7 @@ OBJS := $(patsubst srcs/%.c,objs/%.o,$(SRCS))
 CC   := gcc
 CFLAGS := -Wall -Wextra -Werror -O2
 INC = ./include
-INCFLAGS := -lglfw -lGL
+INCFLAGS := -lglfw -lGL -lm
 NAME := cycles
 
 all: $(NAME)

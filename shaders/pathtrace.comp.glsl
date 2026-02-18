@@ -1,60 +1,116 @@
 #version 430 core
 
-// Each workgroup is an 8x8 block of threads (64 threads total).
-// The CPU dispatches enough workgroups to cover the entire image,
-// e.g. a 1920x1080 image needs ceil(1920/8) x ceil(1080/8) = 240x135 workgroups.
-layout(local_size_x = 8, local_size_y = 8) in;
+layout (local_size_x = 8, local_size_y = 8) in;
 
-// Direct read/write access to the accumulation texture.
-// rgba32f = 4 full 32-bit floats per pixel, necessary because accumulated
-// values grow beyond the 0-1 range as frames add up.
-// (Unlike sampler2D which is read-only and filtered)
-layout(rgba32f, binding = 0) uniform image2D u_accumulation;
+layout (binding = 0, rgba32f) uniform image2D u_output;
 
-// How many frames have been accumulated so far
-uniform uint u_frame_index;
-
-// Width and height of the image in pixels, used for bounds checking and UV calculation
 uniform vec2 u_resolution;
+uniform uint u_triangle_count;
+uniform vec3 u_mesh_position;   // <-- NEW
+
+struct s_ray
+{
+    vec3 origin;
+    vec3 dir;
+};
+
+struct s_triangle
+{
+    vec3 v0;
+    vec3 v1;
+    vec3 v2;
+};
+
+layout(std430, binding = 1) buffer Triangles
+{
+    s_triangle triangles[];
+};
+
+bool intersect_triangle(s_ray ray, s_triangle tri, out float t)
+{
+    const float EPS = 0.000001;
+
+    vec3 edge1 = tri.v1 - tri.v0;
+    vec3 edge2 = tri.v2 - tri.v0;
+
+    vec3 pvec = cross(ray.dir, edge2);
+    float det = dot(edge1, pvec);
+
+    if (abs(det) < EPS)
+        return false;
+
+    float invDet = 1.0 / det;
+
+    vec3 tvec = ray.origin - tri.v0;
+    float u = dot(tvec, pvec) * invDet;
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 qvec = cross(tvec, edge1);
+    float v = dot(ray.dir, qvec) * invDet;
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    t = dot(edge2, qvec) * invDet;
+
+    return t > EPS;
+}
 
 void main()
 {
-    // Each thread gets a unique pixel coordinate from its position in the dispatch grid.
-    // gl_GlobalInvocationID is a built-in that uniquely identifies this thread
-    // across all workgroups.
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
 
-    // Because workgroups are dispatched in multiples of 8, the grid may extend
-    // slightly beyond the actual image. Threads that fall outside just exit early
-    // to avoid writing garbage into memory.
     if (pixel.x >= int(u_resolution.x) ||
         pixel.y >= int(u_resolution.y))
         return;
 
-    // Convert integer pixel coordinates to normalized UVs in the 0-1 range.
-    // The + 0.5 shifts to the CENTER of the pixel rather than its corner,
-    // which is the mathematically correct sampling point.
     vec2 uv = (vec2(pixel) + 0.5) / u_resolution;
+    uv = uv * 2.0 - 1.0;
 
-    // --- RAY COLOR GOES HERE ---
-    // This is a placeholder for the actual path tracing calculation.
-    // Currently it just outputs a color gradient (red = left->right, green = bottom->top).
-    // In a real renderer this is where rays would be cast into the scene.
-    vec3 color = vec3(uv.x, uv.y, 0.2);
+    float aspect = u_resolution.x / u_resolution.y;
+    uv.x *= aspect;
 
-    // Read the current accumulated sum for this pixel.
-    // imageLoad uses integer pixel coordinates with no filtering,
-    // unlike texture() which interpolates.
-    vec4 previous = imageLoad(u_accumulation, pixel);
+    // -------- WORLD SPACE RAY --------
+    s_ray ray_world;
+    ray_world.origin = vec3(0.0, 0.0, 0.0);
+    ray_world.dir = normalize(vec3(uv, -1.0));
 
-    // On the very first frame, treat the previous value as zero regardless of
-    // what is in the texture. This restarts accumulation cleanly whenever the
-    // scene or camera changes, without needing a separate CPU-side clear pass.
-    if (u_frame_index == 0)
-        previous = vec4(0.0);
+    // -------- TRANSFORM TO OBJECT SPACE --------
+    s_ray ray;
+    ray.origin = ray_world.origin - u_mesh_position;
+    ray.dir    = ray_world.dir;
 
-    // Add this frame's color sample to the running total and write it back.
-    // The fragment shader from the previous step will later divide this sum
-    // by u_frame_index to compute the average and display it on screen.
-    imageStore(u_accumulation, pixel, previous + vec4(color, 1.0));
+    float closest_t = 1e30;
+    bool hit = false;
+    vec3 hit_normal;
+
+    for (uint i = 0; i < u_triangle_count; i++)
+    {
+        float t;
+        if (intersect_triangle(ray, triangles[i], t))
+        {
+            if (t < closest_t)
+            {
+                closest_t = t;
+                hit = true;
+
+                vec3 e1 = triangles[i].v1 - triangles[i].v0;
+                vec3 e2 = triangles[i].v2 - triangles[i].v0;
+                hit_normal = normalize(cross(e1, e2));
+            }
+        }
+    }
+
+    vec3 color;
+
+    if (hit)
+        color = hit_normal * 0.5 + 0.5;
+    else
+    {
+        float sky = 0.5 * (ray_world.dir.y + 1.0);
+        color = mix(vec3(1.0), vec3(0.5, 0.7, 1.0), sky);
+    }
+
+    imageStore(u_output, pixel, vec4(color, 1.0));
 }
+

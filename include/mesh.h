@@ -2,12 +2,20 @@
 # define MESH_H
 
 # include <stdint.h>
+# include "rt_math.h"
+# include "triangle.h"
 
 typedef struct s_mesh {
-	uint32_t	first_triangle;
+	t_triangle	*triangles;
 	uint32_t	triangle_count;
-	uint32_t	material_offset;
-	uint32_t	pad;
+	t_vec4		position;
+	t_vec4		scale;
 }	t_mesh;
+
+t_mesh generate_uv_sphere(
+    int stacks,
+    int slices,
+    float radius
+);
 
 #endif
