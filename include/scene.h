@@ -1,21 +1,44 @@
 #ifndef SCENE_H
-# define SCENE_H
+#define SCENE_H
 
-# include "material.h"
-# include "rt_math.h"
-# include "triangle.h"
-# include <stdint.h>
+#include <stdint.h>
+#include "../glad/include/glad/glad.h"
+#include "mesh.h"
+#include "rt_math.h"
 
-typedef struct s_scene
-{
-	t_vertex	*vertices;
-	uint32_t	vertex_count;
+// Mirror of s_mesh_descriptor in the compute shader (std430 aligned)
+typedef struct s_mesh_descriptor {
+    t_vec4   position;    // xyz = world position, w = bounding radius
+    uint32_t tri_offset;  // start index into the global triangle array
+    uint32_t tri_count;
+    float    pad[2];      // keeps struct at 32 bytes
+} t_mesh_descriptor;
 
-	t_triangle	*triangles;
-	uint32_t	triangle_count;
+typedef struct s_scene {
+    // CPU side
+    t_mesh            *meshes;        // array of meshes
+    t_mesh_descriptor *descriptors;   // parallel array — one per mesh
+    t_triangle        *triangles;     // flat global triangle array
+    uint32_t           mesh_count;
+    uint32_t           mesh_capacity;
+    uint32_t           triangle_count;
 
-	t_material	*materials;
-	uint32_t	material_count;
-}   t_scene;
+    // GPU side
+    GLuint             ssbo_triangles; // binding = 1
+    GLuint             ssbo_meshes;    // binding = 2
+    int                gpu_dirty;      // triangles need re-upload
+    int                desc_dirty;     // descriptors need re-upload
+} t_scene;
+
+t_scene  scene_create(uint32_t initial_capacity);
+void     scene_destroy(t_scene *scene);
+
+uint32_t scene_add_mesh(t_scene *scene, t_mesh mesh);
+
+void     scene_upload_triangles(t_scene *scene);
+
+void     scene_upload_descriptors(t_scene *scene);
+
+void     scene_move_mesh(t_scene *scene, uint32_t index, t_vec4 position);
 
 #endif
