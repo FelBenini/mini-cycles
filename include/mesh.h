@@ -10,6 +10,7 @@ typedef struct s_mesh {
 	uint32_t	triangle_count;
 	t_vec4		position;
 	t_vec4		scale;
+	uint32_t	smooth;
 }	t_mesh;
 
 t_mesh generate_uv_sphere(

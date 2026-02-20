@@ -49,6 +49,8 @@ static void	rebuild_flat_triangle_array(t_scene *scene)
 			* mesh->triangle_count);
 		scene->descriptors[m].tri_offset = offset;
 		scene->descriptors[m].tri_count = mesh->triangle_count;
+		scene->descriptors[m].smooth = mesh->smooth;
+		scene->descriptors[m].pad = .0f;
 		offset += mesh->triangle_count;
 	}
 }
@@ -92,7 +94,7 @@ uint32_t	scene_add_mesh(t_scene *scene, t_mesh mesh)
 	index = scene->mesh_count++;
 	scene->meshes[index] = mesh;
 	scene->descriptors[index] = (t_mesh_descriptor){.position = mesh.position,
-		.tri_offset = 0, .tri_count = mesh.triangle_count, .pad = {0, 0}};
+		.tri_offset = 0, .tri_count = mesh.triangle_count, .pad = 0};
 	scene->descriptors[index].position.w = compute_bounding_radius(&mesh);
 	scene->gpu_dirty = 1;
 	scene->desc_dirty = 1;

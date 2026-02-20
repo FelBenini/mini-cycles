@@ -3,8 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 
-#define WIDTH 800
-#define HEIGHT 600
+#define WIDTH 1920
+#define HEIGHT 1080
 
 GLFWwindow	*init_cycles(void)
 {

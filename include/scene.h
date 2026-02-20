@@ -11,7 +11,8 @@ typedef struct s_mesh_descriptor {
     t_vec4   position;    // xyz = world position, w = bounding radius
     uint32_t tri_offset;  // start index into the global triangle array
     uint32_t tri_count;
-    float    pad[2];      // keeps struct at 32 bytes
+	uint32_t smooth;
+    float    pad;      // keeps struct at 32 bytes
 } t_mesh_descriptor;
 
 typedef struct s_scene {
