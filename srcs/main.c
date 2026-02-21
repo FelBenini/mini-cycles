@@ -22,7 +22,9 @@ int	main(void)
 	GLuint		fullscreen_program;
 	t_scene		scene;
 	t_mesh		sphere1;
+	t_mesh		sphere2;
 	uint32_t	idx1;
+	uint32_t	idx2;
 	GLuint		tex;
 	GLint		loc_resolution;
 	GLint		loc_mesh_count;
@@ -39,11 +41,16 @@ int	main(void)
 			"shaders/fullscreen.frag.glsl");
 	scene = scene_create(8);
 	sphere1 = generate_uv_sphere(32, 32, 1.0f);
+	sphere1.smooth = 0;
 	sphere1.position = (t_vec4){-1.0f, 0.0f, -3.0f, 0.0f};
 	idx1 = scene_add_mesh(&scene, sphere1);
+	sphere2 = generate_uv_sphere(32, 32, 1.0f);
+	sphere2.position = (t_vec4){-1.0f, 0.0f, -3.0f, 0.0f};
+	idx2 = scene_add_mesh(&scene, sphere2);
 	(void)idx1;
 
 	scene_upload_triangles(&scene);
+	scene_upload_bvh_nodes(&scene);
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA,
@@ -55,18 +62,19 @@ int	main(void)
 	loc_resolution = glGetUniformLocation(compute_program, "u_resolution");
 	loc_mesh_count = glGetUniformLocation(compute_program, "u_mesh_count");
 	loc_accumulation_tex_fs = glGetUniformLocation(fullscreen_program, "u_accumulation_tex");
-
-	printf("triangle count: %d\n", scene.triangle_count);
 	while (!glfwWindowShouldClose(window))
 	{
-		//time += 0.016f;
-		//scene_move_mesh(&scene, idx1, (t_vec4){sinf(time) * 2.0f, cosf(time), -3.0f,
-		//	0.0f});
+		time += 0.016f;
+		scene_move_mesh(&scene, idx1, (t_vec4){sinf(time) * 2.0f, cosf(time), -3.0f,
+			0.0f});
+		scene_move_mesh(&scene, idx2, (t_vec4){sinf(time) * -2.0f, -cosf(time), -3.0f,
+			0.0f});
 		if (scene.desc_dirty)
 			scene_upload_descriptors(&scene);
 		glUseProgram(compute_program);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, scene.ssbo_triangles);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, scene.ssbo_meshes);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, scene.ssbo_bvh_nodes);
 		glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glUniform2f(loc_resolution, (float)WIDTH, (float)HEIGHT);
 		glUniform1ui(loc_mesh_count, scene.mesh_count);

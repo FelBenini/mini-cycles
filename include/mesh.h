@@ -19,4 +19,9 @@ t_mesh generate_uv_sphere(
     float radius
 );
 
+t_mesh generate_plane(
+    float x_size,
+    float y_size
+);
+
 #endif

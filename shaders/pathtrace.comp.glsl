@@ -30,6 +30,15 @@ struct s_mesh_descriptor {
     float pad1;
 };
 
+struct s_bvh_node {
+    vec4  bbox_min;    // xyz = min corner
+    vec4  bbox_max;    // xyz = max corner
+    uint  left_child;
+    uint  right_child;
+    uint  tri_offset;
+    uint  tri_count;   // 0 = internal node
+};
+
 struct s_hit {
     float t;
 	vec3  pos;
@@ -41,7 +50,7 @@ struct s_hit {
 // ------------------------------------------------------------------ light ---
 
 const vec3  SUN_DIR       = normalize(vec3(-0.6, 1.0, 0.4)); // world-space sun direction
-const vec3  SUN_COLOR     = vec3(1.0, 0.5, 0.8);
+const vec3  SUN_COLOR     = vec3(1.0, 1.0, 1.0);
 const vec3  AMBIENT_COLOR = vec3(0.10, 0.12, 0.18);
 const float SPECULAR_POW  = 32.0;
 const float SHADOW_BIAS   = 1e-3;
@@ -50,8 +59,26 @@ const float SHADOW_BIAS   = 1e-3;
 
 layout(std430, binding = 1) buffer Triangles { s_triangle triangles[]; };
 layout(std430, binding = 2) buffer Meshes    { s_mesh_descriptor meshes[]; };
+layout(std430, binding = 3) buffer BVHNodes  { s_bvh_node bvh_nodes[]; };
 
-// ------------------------------------------------------- broad phase cull ---
+// --------------------------------------------------------- BVH traversal ---
+
+bool intersect_aabb(s_ray ray, vec3 bbox_min, vec3 bbox_max)
+{
+    const float EPS = 1e-6;
+    vec3 inv_dir = 1.0 / (ray.dir + vec3(EPS));
+    
+    vec3 t0 = (bbox_min - ray.origin) * inv_dir;
+    vec3 t1 = (bbox_max - ray.origin) * inv_dir;
+    
+    vec3 tmin = min(t0, t1);
+    vec3 tmax = max(t0, t1);
+    
+    float t_near = max(max(tmin.x, tmin.y), tmin.z);
+    float t_far  = min(min(tmax.x, tmax.y), tmax.z);
+    
+    return t_near <= t_far && t_far > 0.0;
+}
 
 bool intersect_sphere_bound(s_ray ray, vec3 center, float radius)
 {
@@ -62,7 +89,6 @@ bool intersect_sphere_bound(s_ray ray, vec3 center, float radius)
     if (discriminant < 0.0)
         return false;
     float sqrt_d = sqrt(discriminant);
-    // either intersection point in front of ray is enough
     return (-b + sqrt_d) > 0.0;
 }
 
@@ -106,6 +132,60 @@ bool intersect_triangle(
     return true;
 }
 
+// BVH-accelerated intersection for a mesh
+bool mesh_intersect_bvh(
+    s_ray ray,
+    uint mesh_idx,
+    uint bvh_root,
+    out float best_t,
+    out uint tri_idx,
+    out vec3 best_bary
+)
+{
+    best_t = 1e30;
+    bool found = false;
+    best_bary = vec3(0.0);
+    
+    // Stack-based traversal
+    uint stack[32];
+    uint stack_ptr = 0;
+    stack[stack_ptr++] = bvh_root;
+    
+    while (stack_ptr > 0) {
+        uint node_idx = stack[--stack_ptr];
+        s_bvh_node node = bvh_nodes[node_idx];
+        
+        // Check AABB
+        if (!intersect_aabb(ray, node.bbox_min.xyz, node.bbox_max.xyz))
+            continue;
+        
+        // Leaf node
+        if (node.tri_count > 0) {
+            for (uint i = 0; i < node.tri_count; i++) {
+                uint idx = node.tri_offset + i;
+                float t;
+                vec3 bary;
+                
+                if (intersect_triangle(ray, triangles[idx], t, bary) && t < best_t) {
+                    best_t = t;
+                    tri_idx = idx;
+                    best_bary = bary;
+                    found = true;
+                }
+            }
+        }
+        // Internal node
+        else {
+            if (node.right_child != 0)
+                stack[stack_ptr++] = node.right_child;
+            if (node.left_child != 0)
+                stack[stack_ptr++] = node.left_child;
+        }
+    }
+    
+    return found;
+}
+
 bool scene_intersect(s_ray ray_world, out s_hit hit)
 {
     hit.t = 1e30;
@@ -123,46 +203,42 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
         if (!intersect_sphere_bound(ray, vec3(0.0), bound_r))
             continue;
 
-        uint start = meshes[m].tri_offset;
-        uint end   = start + meshes[m].tri_count;
-
-		  for (uint i = start; i < end; i++)
-  		{
-  		  float t;
-  		  vec3 bary;
-
-      	if (intersect_triangle(ray, triangles[i], t, bary) && t < hit.t)
-  		  {
-		      hit.t          = t;
-		      hit.mesh_index = m;
-    			hit.pos        = ray_world.origin + ray_world.dir * t;
-		    	vec3 e1 = triangles[i].v1.xyz - triangles[i].v0.xyz;
-    			vec3 e2 = triangles[i].v2.xyz - triangles[i].v0.xyz;
-    			vec3 geo_n = normalize(cross(e1, e2));
-    			if (dot(geo_n, ray.dir) > 0.0)
-    			  geo_n = -geo_n;
-    			hit.geo_normal = geo_n;
-    			if (meshes[m].smooth_shade == 1u)
-    			{
-	    		  vec3 n0 = triangles[i].n0.xyz;
-  				  vec3 n1 = triangles[i].n1.xyz;
-	  			  vec3 n2 = triangles[i].n2.xyz;
-
-		  	    hit.normal = normalize(
-			        bary.x * n0 +
-				      bary.y * n1 +
-				      bary.z * n2
-				    );
-					  if (dot(hit.normal, hit.geo_normal) < 0.0)
-					    hit.normal = -hit.normal;
-    			}
-		    	else
-				    hit.normal = geo_n;
-    			found = true;
-      	}
-		  }
+        // Use BVH traversal (root node index is 0 for each mesh's BVH)
+        float t;
+        uint tri_idx;
+        vec3 bary;
+        if (mesh_intersect_bvh(ray, m, 0, t, tri_idx, bary) && t < hit.t)
+        {
+            hit.t = t;
+            hit.mesh_index = m;
+            hit.pos = ray_world.origin + ray_world.dir * t;
+            
+            vec3 e1 = triangles[tri_idx].v1.xyz - triangles[tri_idx].v0.xyz;
+            vec3 e2 = triangles[tri_idx].v2.xyz - triangles[tri_idx].v0.xyz;
+            vec3 geo_n = normalize(cross(e1, e2));
+            if (dot(geo_n, ray.dir) > 0.0)
+                geo_n = -geo_n;
+            hit.geo_normal = geo_n;
+            
+            if (meshes[m].smooth_shade == 1u)
+            {
+                vec3 n0 = triangles[tri_idx].n0.xyz;
+                vec3 n1 = triangles[tri_idx].n1.xyz;
+                vec3 n2 = triangles[tri_idx].n2.xyz;
+                
+                // Interpolate normals using barycentric coordinates
+                hit.normal = normalize(bary.x * n0 + bary.y * n1 + bary.z * n2);
+                if (dot(hit.normal, hit.geo_normal) < 0.0)
+                    hit.normal = -hit.normal;
+            }
+            else
+                hit.normal = geo_n;
+            
+            found = true;
+        }
     }
-  return found;
+    
+    return found;
 }
 
 bool scene_occluded(vec3 world_origin, vec3 dir)
@@ -183,16 +259,11 @@ bool scene_occluded(vec3 world_origin, vec3 dir)
         if (!intersect_sphere_bound(ray, vec3(0.0), bound_r))
             continue;
 
-        uint start = meshes[m].tri_offset;
-        uint end   = start + meshes[m].tri_count;
-
-        for (uint i = start; i < end; i++)
-        {
-            float t;
-            vec3  bary;
-            if (intersect_triangle(ray, triangles[i], t, bary))
-                return true;
-        }
+        float t;
+        uint tri_idx;
+        vec3 bary;
+        if (mesh_intersect_bvh(ray, m, 0, t, tri_idx, bary))
+            return true;
     }
     return false;
 }
