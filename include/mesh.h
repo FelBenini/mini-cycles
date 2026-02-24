@@ -24,4 +24,6 @@ t_mesh generate_plane(
     float y_size
 );
 
+t_mesh generate_cone(int stacks, int slices, float radius, float height);
+
 #endif

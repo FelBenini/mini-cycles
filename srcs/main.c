@@ -29,10 +29,21 @@ int	main(void)
 	GLint		loc_resolution;
 	GLint		loc_mesh_count;
 	GLint		loc_accumulation_tex_fs;
+	t_mesh		plane;
+
+	double		last_time;
+	double		current_time;
+	int			frame_count;
+	double		fps;
+	char		title[256];
 
 	window = init_cycles();
 	time = 0.0f;
-	(void)time;
+
+	last_time = glfwGetTime();
+	frame_count = 0;
+	fps = 0.0;
+
 	glViewport(0, 0, WIDTH, HEIGHT);
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -40,7 +51,11 @@ int	main(void)
 	fullscreen_program = shader_create_graphics("shaders/fullscreen.vert.glsl",
 			"shaders/fullscreen.frag.glsl");
 	scene = scene_create(8);
-	sphere1 = generate_uv_sphere(32, 32, 1.0f);
+	plane = generate_plane(10, 10);
+	plane.position = (t_vec4){0.0f, -1, 0, 0};
+	// scene_add_mesh(&scene, plane);
+	(void)plane;
+	sphere1 = generate_uv_sphere(18, 18, 1.0f);
 	sphere1.smooth = 0;
 	sphere1.position = (t_vec4){-1.0f, 0.0f, -3.0f, 0.0f};
 	idx1 = scene_add_mesh(&scene, sphere1);
@@ -86,6 +101,23 @@ int	main(void)
 		glBindTexture(GL_TEXTURE_2D, tex);
 		glUniform1i(loc_accumulation_tex_fs, 0);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
+		current_time = glfwGetTime();
+		frame_count++;
+
+		if (current_time - last_time >= 1.0)
+		{
+			fps = frame_count / (current_time - last_time);
+			double ms = 1000.0 / fps;
+
+			snprintf(title, sizeof(title),
+				"PathTracer | FPS: %.2f | %.2f ms",
+				fps, ms);
+
+			glfwSetWindowTitle(window, title);
+
+			frame_count = 0;
+			last_time = current_time;
+		}
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}

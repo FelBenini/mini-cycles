@@ -13,7 +13,7 @@ typedef struct s_mesh_descriptor {
     uint32_t tri_offset;  // start index into the global triangle array
     uint32_t tri_count;
 	uint32_t smooth;
-    float    pad;      // keeps struct at 32 bytes
+	uint32_t bvh_root;
 } t_mesh_descriptor;
 
 typedef struct s_scene {

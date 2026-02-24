@@ -47,8 +47,7 @@ static void	rebuild_flat_triangle_array(t_scene *scene)
 	{
 		mesh = &scene->meshes[m];
 		bvh = &scene->bvhs[m];
-		
-		// Reorder triangles according to BVH indices for spatial coherence
+
 		if (bvh->indices && bvh->index_count > 0)
 		{
 			for (uint32_t i = 0; i < bvh->index_count; i++)
@@ -56,15 +55,13 @@ static void	rebuild_flat_triangle_array(t_scene *scene)
 		}
 		else
 		{
-			// Fallback if no BVH (shouldn't happen)
 			memcpy(scene->triangles + offset, mesh->triangles, sizeof(t_triangle)
 				* mesh->triangle_count);
 		}
-		
+
 		scene->descriptors[m].tri_offset = offset;
 		scene->descriptors[m].tri_count = mesh->triangle_count;
 		scene->descriptors[m].smooth = mesh->smooth;
-		scene->descriptors[m].pad = .0f;
 		offset += mesh->triangle_count;
 	}
 }
@@ -116,12 +113,12 @@ uint32_t	scene_add_mesh(t_scene *scene, t_mesh mesh)
 	index = scene->mesh_count++;
 	scene->meshes[index] = mesh;
 	scene->descriptors[index] = (t_mesh_descriptor){.position = mesh.position,
-		.tri_offset = 0, .tri_count = mesh.triangle_count, .pad = 0};
+		.tri_offset = 0, .tri_count = mesh.triangle_count, .bvh_root = 0,
+		.smooth = mesh.smooth};
 	scene->descriptors[index].position.w = compute_bounding_radius(&mesh);
-	
-	// Build BVH for this mesh
+
 	scene->bvhs[index] = bvh_build(mesh.triangles, mesh.triangle_count);
-	
+
 	scene->gpu_dirty = 1;
 	scene->desc_dirty = 1;
 	scene->bvh_dirty = 1;
@@ -151,35 +148,46 @@ void	scene_upload_descriptors(t_scene *scene)
 
 void	scene_upload_bvh_nodes(t_scene *scene)
 {
-	uint32_t total_nodes = 0;
+	uint32_t	total_nodes;
+	uint32_t	node_offset;
+	t_bvh		*bvh;
+	t_bvh_node	*flattened;
+
+	total_nodes = 0;
 	for (uint32_t m = 0; m < scene->mesh_count; m++)
 		total_nodes += scene->bvhs[m].node_count;
-	
 	if (total_nodes == 0)
-		return;
-	
-	t_bvh_node *flattened = malloc(sizeof(t_bvh_node) * total_nodes);
+		return ;
+	flattened = malloc(sizeof(t_bvh_node) * total_nodes);
 	if (!flattened)
 	{
 		fprintf(stderr, "scene: failed to allocate flattened BVH buffer\n");
-		return;
+		return ;
 	}
-	uint32_t offset = 0;
+	node_offset = 0;
 	for (uint32_t m = 0; m < scene->mesh_count; m++)
 	{
-		t_bvh *bvh = &scene->bvhs[m];
-		if (bvh->node_count > 0)
+		bvh = &scene->bvhs[m];
+		scene->descriptors[m].bvh_root = node_offset;
+		for (uint32_t n = 0; n < bvh->node_count; n++)
 		{
-			memcpy(flattened + offset, bvh->nodes, 
-				   sizeof(t_bvh_node) * bvh->node_count);
-			offset += bvh->node_count;
+			t_bvh_node node = bvh->nodes[n];
+			if (node.tri_count == 0)
+			{
+				node.left_child  += node_offset;
+				node.right_child += node_offset;
+			}
+			flattened[node_offset + n] = node;
 		}
+		node_offset += bvh->node_count;
 	}
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_bvh_nodes);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_bvh_node) * total_nodes,
 		flattened, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, scene->ssbo_bvh_nodes);
 	free(flattened);
+	// Re-upload descriptors since bvh_root values were just updated
+	scene_upload_descriptors(scene);
 	scene->bvh_dirty = 0;
 }
 
