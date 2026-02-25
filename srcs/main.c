@@ -13,23 +13,38 @@
 #define WIDTH 1920
 #define HEIGHT 1080
 
+void	create_balls(t_scene *scene)
+{
+	int	i;
+	int	j;
+	t_mesh	ball;
+
+	i = 0;
+	while (i < 10)
+	{
+		j = 0;
+		while (j < 5)
+		{
+			ball = generate_uv_sphere(5, 5, 0.3f);
+			ball.position = (t_vec4){(i * 0.8f) - 1.0f, (j * 0.8f) - 1.0f, -5.0f, 0.0f};
+			scene_add_mesh(scene, ball);
+			j++;
+		}
+		i++;
+	}
+}
+
 int	main(void)
 {
 	GLFWwindow	*window;
-	float		time;
 	GLuint		vao;
 	GLuint		compute_program;
 	GLuint		fullscreen_program;
 	t_scene		scene;
-	t_mesh		sphere1;
-	t_mesh		sphere2;
-	uint32_t	idx1;
-	uint32_t	idx2;
 	GLuint		tex;
 	GLint		loc_resolution;
 	GLint		loc_mesh_count;
 	GLint		loc_accumulation_tex_fs;
-	t_mesh		plane;
 
 	double		last_time;
 	double		current_time;
@@ -38,8 +53,6 @@ int	main(void)
 	char		title[256];
 
 	window = init_cycles();
-	time = 0.0f;
-
 	last_time = glfwGetTime();
 	frame_count = 0;
 	fps = 0.0;
@@ -51,21 +64,10 @@ int	main(void)
 	fullscreen_program = shader_create_graphics("shaders/fullscreen.vert.glsl",
 			"shaders/fullscreen.frag.glsl");
 	scene = scene_create(8);
-	plane = generate_plane(10, 10);
-	plane.position = (t_vec4){0.0f, -1, 0, 0};
-	// scene_add_mesh(&scene, plane);
-	(void)plane;
-	sphere1 = generate_uv_sphere(18, 18, 1.0f);
-	sphere1.smooth = 0;
-	sphere1.position = (t_vec4){-1.0f, 0.0f, -3.0f, 0.0f};
-	idx1 = scene_add_mesh(&scene, sphere1);
-	sphere2 = generate_uv_sphere(32, 32, 1.0f);
-	sphere2.position = (t_vec4){-1.0f, 0.0f, -3.0f, 0.0f};
-	idx2 = scene_add_mesh(&scene, sphere2);
-	(void)idx1;
-
+	create_balls(&scene);
 	scene_upload_triangles(&scene);
 	scene_upload_bvh_nodes(&scene);
+	printf("%d\n", scene.triangle_count);
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA,
@@ -79,11 +81,6 @@ int	main(void)
 	loc_accumulation_tex_fs = glGetUniformLocation(fullscreen_program, "u_accumulation_tex");
 	while (!glfwWindowShouldClose(window))
 	{
-		time += 0.016f;
-		scene_move_mesh(&scene, idx1, (t_vec4){sinf(time) * 2.0f, cosf(time), -3.0f,
-			0.0f});
-		scene_move_mesh(&scene, idx2, (t_vec4){sinf(time) * -2.0f, -cosf(time), -3.0f,
-			0.0f});
 		if (scene.desc_dirty)
 			scene_upload_descriptors(&scene);
 		glUseProgram(compute_program);
