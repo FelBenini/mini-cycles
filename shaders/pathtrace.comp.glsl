@@ -16,6 +16,9 @@ struct s_triangle {
     vec4 v0;
     vec4 v1;
     vec4 v2;
+};
+
+struct s_triangle_normals {
     vec4 n0;
     vec4 n1;
     vec4 n2;
@@ -59,9 +62,10 @@ struct s_hit {
 // readonly lets the driver skip tracking stores — measurable on large BVHs
 
 layout(std430, binding = 1) readonly buffer Triangles { s_triangle triangles[]; };
-layout(std430, binding = 2) readonly buffer Meshes    { s_mesh_descriptor meshes[]; };
-layout(std430, binding = 3) readonly buffer BVHNodes  { s_bvh_node bvh_nodes[]; };
-layout(std430, binding = 4) readonly buffer TLASNodes { s_tlas_node tlas_nodes[]; };
+layout(std430, binding = 2) readonly buffer TriangleNormals { s_triangle_normals triangle_normals[]; };
+layout(std430, binding = 3) readonly buffer Meshes    { s_mesh_descriptor meshes[]; };
+layout(std430, binding = 4) readonly buffer BVHNodes  { s_bvh_node bvh_nodes[]; };
+layout(std430, binding = 5) readonly buffer TLASNodes { s_tlas_node tlas_nodes[]; };
 
 // --------------------------------------------------------- AABB
 // Uses precomputed inv_dir passed in via the ray struct.
@@ -175,9 +179,9 @@ void blas_intersect(
 
                     if (meshes[mesh_idx].smooth_shade == 1u)
                     {
-                        vec3 interp = bary.x * triangles[tri_idx].n0.xyz
-                                    + bary.y * triangles[tri_idx].n1.xyz
-                                    + bary.z * triangles[tri_idx].n2.xyz;
+                        vec3 interp = bary.x * triangle_normals[tri_idx].n0.xyz
+                                    + bary.y * triangle_normals[tri_idx].n1.xyz
+                                    + bary.z * triangle_normals[tri_idx].n2.xyz;
                         hit.normal = normalize(interp);
                         if (dot(hit.normal, geo_n) < 0.0)
                             hit.normal = -hit.normal;

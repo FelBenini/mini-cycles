@@ -15,6 +15,7 @@ void	scene_destroy(t_scene *scene)
 	free(scene->bvhs);
 	tlas_destroy(&scene->tlas);
 	glDeleteBuffers(1, &scene->ssbo_triangles);
+	glDeleteBuffers(1, &scene->ssbo_normals);
 	glDeleteBuffers(1, &scene->ssbo_meshes);
 	glDeleteBuffers(1, &scene->ssbo_bvh_nodes);
 	glDeleteBuffers(1, &scene->ssbo_tlas_nodes);

@@ -1,4 +1,5 @@
 #include "bvh.h"
+#include "cycles.h"
 #include "scene.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -60,7 +61,7 @@ void	scene_upload_bvh_nodes(t_scene *scene)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_bvh_nodes);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_bvh_node) * total_nodes,
 			flattened, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, scene->ssbo_bvh_nodes);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, BVH_SSBOS, scene->ssbo_bvh_nodes);
 	free(flattened);
 	scene_upload_descriptors(scene);
 	scene->bvh_dirty = 0;
@@ -85,7 +86,7 @@ void	scene_upload_tlas_nodes(t_scene *scene)
 		glBufferData(GL_SHADER_STORAGE_BUFFER, 
 					sizeof(t_tlas_node) * scene->tlas.node_count,
 					scene->tlas.nodes, GL_STATIC_DRAW);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, scene->ssbo_tlas_nodes);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TLAS_SSBOS, scene->ssbo_tlas_nodes);
 		scene->tlas_dirty = 0;
 	}
 }

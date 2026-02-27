@@ -29,9 +29,10 @@ typedef struct s_scene {
 
     // GPU side
     GLuint             ssbo_triangles; // binding = 1
-    GLuint             ssbo_meshes;    // binding = 2
-    GLuint             ssbo_bvh_nodes; // binding = 3
-    GLuint             ssbo_tlas_nodes; // binding = 4
+    GLuint             ssbo_normals;   // binding = 2
+    GLuint             ssbo_meshes;    // binding = 3
+    GLuint             ssbo_bvh_nodes; // binding = 4
+    GLuint             ssbo_tlas_nodes; // binding = 5
     int                gpu_dirty;      // triangles need re-upload
     int                desc_dirty;     // descriptors need re-upload
     int                bvh_dirty;      // BVH nodes need re-upload

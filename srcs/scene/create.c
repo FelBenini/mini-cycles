@@ -10,6 +10,7 @@ t_scene	scene_create(uint32_t initial_capacity)
 	scene.descriptors = malloc(sizeof(t_mesh_descriptor) * scene.mesh_capacity);
 	scene.bvhs = malloc(sizeof(t_bvh) * scene.mesh_capacity);
 	glGenBuffers(1, &scene.ssbo_triangles);
+	glGenBuffers(1, &scene.ssbo_normals);
 	glGenBuffers(1, &scene.ssbo_meshes);
 	glGenBuffers(1, &scene.ssbo_bvh_nodes);
 	glGenBuffers(1, &scene.ssbo_tlas_nodes);

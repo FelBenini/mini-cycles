@@ -26,7 +26,6 @@ void	create_balls(t_scene *scene)
 		while (j < 10)
 		{
 			ball = generate_uv_sphere(32, 32, 0.3f);
-			ball.smooth = 0;
 			ball.position = (t_vec4){(i * 0.8f) - 4.0f, (j * 0.8f) - 4.0f, -5.0f, 0.0f};
 			scene_add_mesh(scene, ball);
 			j++;
@@ -65,15 +64,7 @@ int	main(void)
 	fullscreen_program = shader_create_graphics("shaders/fullscreen.vert.glsl",
 			"shaders/fullscreen.frag.glsl");
 	scene = scene_create(8);
-	t_mesh  cone = generate_cone(32, 32, 1.0f, 3.0f);
-	t_mesh  cone2 = generate_cone(32, 32, 1.0f, 3.0f);
-  t_mesh  plane = generate_plane(10.0f, 10.0f);
-	cone.position = (t_vec4){-2.0f, -1.0f, -3.0f, 0.0f};
-	cone2.position = (t_vec4){2.0f, -1.0f, -3.0f, 0.0f};
-	plane.position = (t_vec4){0.0f, -1.0f, 0.0f, 0.0f};
-	scene_add_mesh(&scene, cone);
-	scene_add_mesh(&scene, cone2);
-	scene_add_mesh(&scene, plane);
+	create_balls(&scene);
 	scene_upload_triangles(&scene);
 	scene_upload_bvh_nodes(&scene);
 	scene_rebuild_tlas(&scene);
@@ -103,9 +94,10 @@ int	main(void)
 		}
 		glUseProgram(compute_program);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, scene.ssbo_triangles);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, scene.ssbo_meshes);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, scene.ssbo_bvh_nodes);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, scene.ssbo_tlas_nodes);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, scene.ssbo_normals);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, scene.ssbo_meshes);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, scene.ssbo_bvh_nodes);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, scene.ssbo_tlas_nodes);
 		glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glUniform2f(loc_resolution, (float)WIDTH, (float)HEIGHT);
 		glUniform1ui(loc_mesh_count, scene.mesh_count);

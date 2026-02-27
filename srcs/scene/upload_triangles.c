@@ -1,4 +1,5 @@
 #include "bvh.h"
+#include "cycles.h"
 #include "mesh.h"
 #include "scene.h"
 #include "triangle.h"
@@ -58,11 +59,44 @@ static int	rebuild_flat_triangle_array(t_scene *scene)
 
 void	scene_upload_triangles(t_scene *scene)
 {
+	t_triangle_vertices	*verts;
+	t_triangle_normals	*norms;
+	uint32_t			i;
+
 	rebuild_flat_triangle_array(scene);
+	verts = malloc(sizeof(t_triangle_vertices) * scene->triangle_count);
+	norms = malloc(sizeof(t_triangle_normals) * scene->triangle_count);
+	if (!verts || !norms)
+	{
+		fprintf(stderr, "scene: failed to allocate vertex/normal arrays\n");
+		free(verts);
+		free(norms);
+		return ;
+	}
+	for (i = 0; i < scene->triangle_count; i++)
+	{
+		verts[i].v0 = scene->triangles[i].v0;
+		verts[i].v1 = scene->triangles[i].v1;
+		verts[i].v2 = scene->triangles[i].v2;
+
+		norms[i].n0 = scene->triangles[i].n0;
+		norms[i].n1 = scene->triangles[i].n1;
+		norms[i].n2 = scene->triangles[i].n2;
+	}
+
+	// Upload vertices
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_triangles);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_triangle) * scene->triangle_count,
-			scene->triangles, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, scene->ssbo_triangles);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_triangle_vertices) * scene->triangle_count,
+			verts, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRIANGLE_VERTS, scene->ssbo_triangles);
+
+	// Upload normals
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_normals);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_triangle_normals) * scene->triangle_count,
+			norms, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRIANGLE_NORMS, scene->ssbo_normals);
+	free(verts);
+	free(norms);
 	scene->gpu_dirty = 0;
 	scene_upload_descriptors(scene);
 	scene_upload_bvh_nodes(scene);
