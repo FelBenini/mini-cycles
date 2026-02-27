@@ -1,8 +1,8 @@
 #include "bvh.h"
-#include "cycles.h"
 #include "mesh.h"
 #include "scene.h"
 #include "triangle.h"
+#include "cycles.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
-#include "cycles.h"
 #include "scene.h"
+#include "cycles.h"
 
 void	scene_upload_descriptors(t_scene *scene)
 {

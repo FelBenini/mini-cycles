@@ -1,11 +1,11 @@
 #ifndef SCENE_H
-#define SCENE_H
+# define SCENE_H
 
-#include <stdint.h>
-#include "../glad/include/glad/glad.h"
-#include "mesh.h"
-#include "rt_math.h"
-#include "bvh.h"
+# include <stdint.h>
+# include "../glad/include/glad/glad.h"
+# include "mesh.h"
+# include "rt_math.h"
+# include "bvh.h"
 
 // Mirror of s_mesh_descriptor in the compute shader (std430 aligned)
 typedef struct s_mesh_descriptor {

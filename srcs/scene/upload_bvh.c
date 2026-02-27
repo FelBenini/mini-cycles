@@ -1,6 +1,6 @@
 #include "bvh.h"
-#include "cycles.h"
 #include "scene.h"
+#include "cycles.h"
 #include <stdint.h>
 #include <stdlib.h>
 
