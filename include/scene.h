@@ -22,6 +22,7 @@ typedef struct s_scene {
     t_mesh_descriptor *descriptors;   // parallel array — one per mesh
     t_triangle        *triangles;     // flat global triangle array
     t_bvh             *bvhs;          // BVH per mesh
+    t_tlas             tlas;          // TLAS for scene (top-level acceleration structure)
     uint32_t           mesh_count;
     uint32_t           mesh_capacity;
     uint32_t           triangle_count;
@@ -30,9 +31,11 @@ typedef struct s_scene {
     GLuint             ssbo_triangles; // binding = 1
     GLuint             ssbo_meshes;    // binding = 2
     GLuint             ssbo_bvh_nodes; // binding = 3
+    GLuint             ssbo_tlas_nodes; // binding = 4
     int                gpu_dirty;      // triangles need re-upload
     int                desc_dirty;     // descriptors need re-upload
     int                bvh_dirty;      // BVH nodes need re-upload
+    int                tlas_dirty;     // TLAS nodes need re-upload
 } t_scene;
 
 t_scene  scene_create(uint32_t initial_capacity);
@@ -45,6 +48,10 @@ void     scene_upload_triangles(t_scene *scene);
 void     scene_upload_descriptors(t_scene *scene);
 
 void     scene_upload_bvh_nodes(t_scene *scene);
+
+void     scene_upload_tlas_nodes(t_scene *scene);
+
+void     scene_rebuild_tlas(t_scene *scene);
 
 void     scene_move_mesh(t_scene *scene, uint32_t index, t_vec4 position);
 

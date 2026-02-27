@@ -50,6 +50,7 @@ uint32_t	scene_add_mesh(t_scene *scene, t_mesh mesh)
 	scene->gpu_dirty = 1;
 	scene->desc_dirty = 1;
 	scene->bvh_dirty = 1;
+	scene->tlas_dirty = 1;
 	return (index);
 }
 
@@ -64,4 +65,5 @@ void	scene_move_mesh(t_scene *scene, uint32_t index, t_vec4 position)
 	mesh->position = position;
 	scene->descriptors[index].position = position;
 	scene->desc_dirty = 1;
+	scene->tlas_dirty = 1;
 }

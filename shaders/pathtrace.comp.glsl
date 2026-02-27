@@ -3,31 +3,30 @@ layout (local_size_x = 8, local_size_y = 8) in;
 layout (binding = 0, rgba32f) uniform image2D u_output;
 
 uniform vec2 u_resolution;
-uniform uint u_mesh_count;
 
 // ------------------------------------------------------------------ structs --
 
 struct s_ray {
     vec3 origin;
     vec3 dir;
+    vec3 inv_dir;   // precomputed reciprocal — avoids per-node division
 };
 
 struct s_triangle {
     vec4 v0;
     vec4 v1;
     vec4 v2;
-
-	vec4 n0;
-	vec4 n1;
-	vec4 n2;
+    vec4 n0;
+    vec4 n1;
+    vec4 n2;
 };
 
 struct s_mesh_descriptor {
-    vec4  position;   // xyz = world pos, w = bounding radius
+    vec4  position;
     uint  tri_offset;
     uint  tri_count;
-	uint  smooth_shade;
-	uint  bvh_root;
+    uint  smooth_shade;
+    uint  bvh_root;
 };
 
 struct s_bvh_node {
@@ -36,234 +35,377 @@ struct s_bvh_node {
     uint  left_child;
     uint  right_child;
     uint  tri_offset;
-    uint  tri_count;   // 0 = internal node
+    uint  tri_count;
+};
+
+struct s_tlas_node {
+    vec4  bbox_min;
+    vec4  bbox_max;
+    uint  left_child;
+    uint  right_child;
+    uint  mesh_index;
+    uint  _padding;
 };
 
 struct s_hit {
     float t;
-	vec3  pos;
+    vec3  pos;
     vec3  normal;
-	vec3  geo_normal;
+    vec3  geo_normal;
     uint  mesh_index;
 };
 
-// ------------------------------------------------------------------ light ---
+// ------------------------------------------------------------------ SSBOs --
+// readonly lets the driver skip tracking stores — measurable on large BVHs
 
-const vec3  SUN_DIR       = normalize(vec3(-0.6, 1.0, 0.4));
-const vec3  SUN_COLOR     = vec3(1.0, 1.0, 1.0);
-const vec3  AMBIENT_COLOR = vec3(0.10, 0.12, 0.18);
-const float SPECULAR_POW  = 32.0;
-const float SHADOW_BIAS   = 1e-3;
+layout(std430, binding = 1) readonly buffer Triangles { s_triangle triangles[]; };
+layout(std430, binding = 2) readonly buffer Meshes    { s_mesh_descriptor meshes[]; };
+layout(std430, binding = 3) readonly buffer BVHNodes  { s_bvh_node bvh_nodes[]; };
+layout(std430, binding = 4) readonly buffer TLASNodes { s_tlas_node tlas_nodes[]; };
 
-// ------------------------------------------------------------------ SSBOs ---
+// --------------------------------------------------------- AABB
+// Uses precomputed inv_dir passed in via the ray struct.
 
-layout(std430, binding = 1) buffer Triangles { s_triangle triangles[]; };
-layout(std430, binding = 2) buffer Meshes    { s_mesh_descriptor meshes[]; };
-layout(std430, binding = 3) buffer BVHNodes  { s_bvh_node bvh_nodes[]; };
-
-// --------------------------------------------------------- BVH traversal ---
-
-bool intersect_aabb(s_ray ray, vec3 bbox_min, vec3 bbox_max)
+bool intersect_aabb(
+    s_ray  ray,
+    vec3   bmin,
+    vec3   bmax,
+    float  max_t,
+    out float t_near)
 {
-    const float EPS = 1e-6;
-    vec3 inv_dir = 1.0 / (ray.dir + vec3(EPS));
+    vec3 t0 = (bmin - ray.origin) * ray.inv_dir;
+    vec3 t1 = (bmax - ray.origin) * ray.inv_dir;
 
-    vec3 t0 = (bbox_min - ray.origin) * inv_dir;
-    vec3 t1 = (bbox_max - ray.origin) * inv_dir;
+    vec3 tmin_v = min(t0, t1);
+    vec3 tmax_v = max(t0, t1);
 
-    vec3 tmin = min(t0, t1);
-    vec3 tmax = max(t0, t1);
+    float t0_max = max(max(tmin_v.x, tmin_v.y), tmin_v.z);
+    float t1_min = min(min(tmax_v.x, tmax_v.y), tmax_v.z);
 
-    float t_near = max(max(tmin.x, tmin.y), tmin.z);
-    float t_far  = min(min(tmax.x, tmax.y), tmax.z);
+    t_near = t0_max;
 
-    return t_near <= t_far && t_far > 0.0;
+    return (t1_min >= t0_max) &&
+           (t1_min >  0.0)    &&
+           (t0_max <  max_t);
 }
 
-bool intersect_sphere_bound(s_ray ray, vec3 center, float radius)
-{
-    vec3  oc = ray.origin - center;
-    float b  = dot(oc, ray.dir);
-    float c  = dot(oc, oc) - radius * radius;
-    float discriminant = b * b - c;
-    if (discriminant < 0.0)
-        return false;
-    float sqrt_d = sqrt(discriminant);
-    return (-b + sqrt_d) > 0.0;
-}
+// --------------------------------------------------------- triangle
 
 bool intersect_triangle(
-    s_ray ray,
-    s_triangle tri,
-    out float t,
-    out vec3 bary
-)
+    s_ray       ray,
+    s_triangle  tri,
+    out float   t,
+    out vec3    bary)
 {
     const float EPS = 1e-6;
 
     vec3 v0 = tri.v0.xyz;
-    vec3 v1 = tri.v1.xyz;
-    vec3 v2 = tri.v2.xyz;
+    vec3 e1 = tri.v1.xyz - v0;
+    vec3 e2 = tri.v2.xyz - v0;
 
-    vec3 e1 = v1 - v0;
-    vec3 e2 = v2 - v0;
-
-    vec3 pvec = cross(ray.dir, e2);
-    float det = dot(e1, pvec);
-    if (abs(det) < EPS)
-        return false;
+    vec3  p   = cross(ray.dir, e2);
+    float det = dot(e1, p);
+    if (abs(det) < EPS) return false;
 
     float inv = 1.0 / det;
-    vec3 tvec = ray.origin - v0;
+    vec3  s   = ray.origin - v0;
 
-    float u = dot(tvec, pvec) * inv;
-    if (u < 0.0 || u > 1.0)
-        return false;
+    float u = dot(s, p) * inv;
+    if (u < 0.0 || u > 1.0) return false;
 
-    vec3 qvec = cross(tvec, e1);
-    float v = dot(ray.dir, qvec) * inv;
-    if (v < 0.0 || u + v > 1.0)
-        return false;
+    vec3  q = cross(s, e1);
+    float v = dot(ray.dir, q) * inv;
+    if (v < 0.0 || u + v > 1.0) return false;
 
-    t = dot(e2, qvec) * inv;
-    if (t < EPS)
-        return false;
+    t = dot(e2, q) * inv;
+    if (t < EPS) return false;
+
     bary = vec3(1.0 - u - v, u, v);
     return true;
 }
 
-bool mesh_intersect_bvh(
-    s_ray ray,
-    uint mesh_idx,
-    uint bvh_root,
-    out float best_t,
-    out uint tri_idx,
-    out vec3 best_bary
-)
+// --------------------------------------------------------- BLAS traversal (closest hit)
+// Ordered: both children are tested, closer one is pushed last so it's popped first.
+
+void blas_intersect(
+    s_ray         ray,
+    uint          mesh_idx,
+    inout s_hit   hit)
 {
-    best_t = 1e30;
-    bool found = false;
-    best_bary = vec3(0.0);
+    uint stack[64];
+    uint ptr = 0;
+    stack[ptr++] = meshes[mesh_idx].bvh_root;
 
-    uint mesh_tri_offset = meshes[mesh_idx].tri_offset;
+    while (ptr > 0)
+    {
+        uint       node_idx = stack[--ptr];
+        s_bvh_node node     = bvh_nodes[node_idx];
 
-    uint stack[32];
-    uint stack_ptr = 0;
-    stack[stack_ptr++] = bvh_root;
-
-    while (stack_ptr > 0) {
-        uint node_idx = stack[--stack_ptr];
-        s_bvh_node node = bvh_nodes[node_idx];
-
-        if (!intersect_aabb(ray, node.bbox_min.xyz, node.bbox_max.xyz))
+        float tnear;
+        if (!intersect_aabb(ray,
+                            node.bbox_min.xyz,
+                            node.bbox_max.xyz,
+                            hit.t,
+                            tnear))
             continue;
 
-        // Leaf node
-        if (node.tri_count > 0) {
-            for (uint i = 0; i < node.tri_count; i++) {
-                uint idx = mesh_tri_offset + node.tri_offset + i;
+        // ---- leaf ----
+        if (node.tri_count > 0)
+        {
+            uint base = meshes[mesh_idx].tri_offset + node.tri_offset;
+            for (uint i = 0; i < node.tri_count; i++)
+            {
                 float t;
-                vec3 bary;
+                vec3  bary;
+                uint  tri_idx = base + i;
 
-                if (intersect_triangle(ray, triangles[idx], t, bary) && t < best_t) {
-                    best_t = t;
-                    tri_idx = idx;
-                    best_bary = bary;
-                    found = true;
+                if (intersect_triangle(ray, triangles[tri_idx], t, bary)
+                    && t < hit.t)
+                {
+                    hit.t          = t;
+                    hit.mesh_index = mesh_idx;
+
+                    vec3 e1    = triangles[tri_idx].v1.xyz - triangles[tri_idx].v0.xyz;
+                    vec3 e2    = triangles[tri_idx].v2.xyz - triangles[tri_idx].v0.xyz;
+                    vec3 geo_n = normalize(cross(e1, e2));
+                    if (dot(geo_n, ray.dir) > 0.0)
+                        geo_n = -geo_n;
+
+                    hit.geo_normal = geo_n;
+
+                    if (meshes[mesh_idx].smooth_shade == 1u)
+                    {
+                        vec3 interp = bary.x * triangles[tri_idx].n0.xyz
+                                    + bary.y * triangles[tri_idx].n1.xyz
+                                    + bary.z * triangles[tri_idx].n2.xyz;
+                        hit.normal = normalize(interp);
+                        if (dot(hit.normal, geo_n) < 0.0)
+                            hit.normal = -hit.normal;
+                    }
+                    else
+                        hit.normal = geo_n;
                 }
             }
-        }
-        // Internal node
-        else {
-            if (node.right_child != 0)
-                stack[stack_ptr++] = node.right_child;
-            if (node.left_child != 0)
-                stack[stack_ptr++] = node.left_child;
-        }
-    }
-
-    return found;
-}
-
-bool scene_intersect(s_ray ray_world, out s_hit hit)
-{
-    hit.t = 1e30;
-    bool found = false;
-
-    for (uint m = 0; m < u_mesh_count; m++)
-    {
-        vec3  mesh_pos = meshes[m].position.xyz;
-        float bound_r  = meshes[m].position.w;
-
-        s_ray ray;
-        ray.origin = ray_world.origin - mesh_pos;
-        ray.dir    = ray_world.dir;
-
-        if (!intersect_sphere_bound(ray, vec3(0.0), bound_r))
             continue;
+        }
 
-        float t;
-        uint tri_idx;
-        vec3 bary;
-        if (mesh_intersect_bvh(ray, m, meshes[m].bvh_root, t, tri_idx, bary) && t < hit.t)
+        // ---- interior: ordered push ----
+        // Test both children, push farther first so closer is on top of stack.
+        float t_left  = 1e30;
+        float t_right = 1e30;
+        bool  hit_l   = false;
+        bool  hit_r   = false;
+
+        if (node.left_child != 0)
+            hit_l = intersect_aabb(ray,
+                                   bvh_nodes[node.left_child].bbox_min.xyz,
+                                   bvh_nodes[node.left_child].bbox_max.xyz,
+                                   hit.t, t_left);
+        if (node.right_child != 0)
+            hit_r = intersect_aabb(ray,
+                                   bvh_nodes[node.right_child].bbox_min.xyz,
+                                   bvh_nodes[node.right_child].bbox_max.xyz,
+                                   hit.t, t_right);
+
+        if (hit_l && hit_r)
         {
-            hit.t = t;
-            hit.mesh_index = m;
-            hit.pos = ray_world.origin + ray_world.dir * t;
-
-            vec3 e1 = triangles[tri_idx].v1.xyz - triangles[tri_idx].v0.xyz;
-            vec3 e2 = triangles[tri_idx].v2.xyz - triangles[tri_idx].v0.xyz;
-            vec3 geo_n = normalize(cross(e1, e2));
-            if (dot(geo_n, ray.dir) > 0.0)
-                geo_n = -geo_n;
-            hit.geo_normal = geo_n;
-
-            if (meshes[m].smooth_shade == 1u)
+            // push farther child first — closer child ends up on top
+            if (t_left <= t_right)
             {
-                vec3 n0 = triangles[tri_idx].n0.xyz;
-                vec3 n1 = triangles[tri_idx].n1.xyz;
-                vec3 n2 = triangles[tri_idx].n2.xyz;
-
-                hit.normal = normalize(bary.x * n0 + bary.y * n1 + bary.z * n2);
-                if (dot(hit.normal, hit.geo_normal) < 0.0)
-                    hit.normal = -hit.normal;
+                stack[ptr++] = node.right_child;
+                stack[ptr++] = node.left_child;
             }
             else
-                hit.normal = geo_n;
-
-            found = true;
+            {
+                stack[ptr++] = node.left_child;
+                stack[ptr++] = node.right_child;
+            }
         }
+        else if (hit_l) stack[ptr++] = node.left_child;
+        else if (hit_r) stack[ptr++] = node.right_child;
     }
-
-    return found;
 }
 
-bool scene_occluded(vec3 world_origin, vec3 dir)
+// --------------------------------------------------------- BLAS traversal (any hit / shadow)
+// Returns true immediately on the first triangle intersection within max_t.
+
+bool blas_intersect_any(
+    s_ray  ray,
+    uint   mesh_idx,
+    float  max_t)
 {
-    s_ray shadow_ray;
-    shadow_ray.origin = world_origin;
-    shadow_ray.dir    = dir;
+    uint stack[32];
+    uint ptr = 0;
+    stack[ptr++] = meshes[mesh_idx].bvh_root;
 
-    for (uint m = 0; m < u_mesh_count; m++)
+    while (ptr > 0)
     {
-        vec3  mesh_pos = meshes[m].position.xyz;
-        float bound_r  = meshes[m].position.w;
+        uint       node_idx = stack[--ptr];
+        s_bvh_node node     = bvh_nodes[node_idx];
 
-        s_ray ray;
-        ray.origin = shadow_ray.origin - mesh_pos;
-        ray.dir    = shadow_ray.dir;
-
-        if (!intersect_sphere_bound(ray, vec3(0.0), bound_r))
+        float tnear;
+        if (!intersect_aabb(ray, node.bbox_min.xyz, node.bbox_max.xyz, max_t, tnear))
             continue;
 
-        float t;
-        uint tri_idx;
-        vec3 bary;
-        if (mesh_intersect_bvh(ray, m, meshes[m].bvh_root, t, tri_idx, bary))
-            return true;
+        if (node.tri_count > 0)
+        {
+            uint base = meshes[mesh_idx].tri_offset + node.tri_offset;
+            for (uint i = 0; i < node.tri_count; i++)
+            {
+                float t;
+                vec3  bary;
+                if (intersect_triangle(ray, triangles[base + i], t, bary)
+                    && t < max_t)
+                    return true;   // early exit — no need to find closest
+            }
+            continue;
+        }
+
+        if (node.right_child != 0) stack[ptr++] = node.right_child;
+        if (node.left_child  != 0) stack[ptr++] = node.left_child;
     }
     return false;
 }
+
+// --------------------------------------------------------- TLAS traversal (closest hit)
+
+bool scene_intersect(s_ray ray_world, out s_hit hit)
+{
+    hit.t  = 1e30;
+    bool found = false;
+
+    uint tlas_stack[64];
+    uint tlas_ptr = 0;
+    tlas_stack[tlas_ptr++] = 0;
+
+    while (tlas_ptr > 0)
+    {
+        uint        tlas_idx = tlas_stack[--tlas_ptr];
+        s_tlas_node tnode    = tlas_nodes[tlas_idx];
+
+        float tnear_tlas;
+        if (!intersect_aabb(ray_world,
+                            tnode.bbox_min.xyz,
+                            tnode.bbox_max.xyz,
+                            hit.t,
+                            tnear_tlas))
+            continue;
+
+        // ---- leaf: descend into BLAS ----
+        if (tnode.left_child == 0 && tnode.right_child == 0)
+        {
+            uint  mesh_idx = tnode.mesh_index;
+            vec3  mesh_pos = meshes[mesh_idx].position.xyz;
+
+            s_ray ray;
+            ray.origin  = ray_world.origin - mesh_pos;
+            ray.dir     = ray_world.dir;
+            ray.inv_dir = ray_world.inv_dir;  // direction unchanged, inv_dir reusable
+
+            uint prev_tri_count = 0;        // track whether BLAS found something
+            float t_before = hit.t;
+
+            blas_intersect(ray, mesh_idx, hit);
+
+            if (hit.t < t_before)
+                found = true;
+            continue;
+        }
+
+        // ---- interior: ordered TLAS push ----
+        float t_left  = 1e30;
+        float t_right = 1e30;
+        bool  hit_l   = false;
+        bool  hit_r   = false;
+
+        if (tnode.left_child != 0)
+            hit_l = intersect_aabb(ray_world,
+                                   tlas_nodes[tnode.left_child].bbox_min.xyz,
+                                   tlas_nodes[tnode.left_child].bbox_max.xyz,
+                                   hit.t, t_left);
+        if (tnode.right_child != 0)
+            hit_r = intersect_aabb(ray_world,
+                                   tlas_nodes[tnode.right_child].bbox_min.xyz,
+                                   tlas_nodes[tnode.right_child].bbox_max.xyz,
+                                   hit.t, t_right);
+
+        if (hit_l && hit_r)
+        {
+            if (t_left <= t_right)
+            {
+                tlas_stack[tlas_ptr++] = tnode.right_child;
+                tlas_stack[tlas_ptr++] = tnode.left_child;
+            }
+            else
+            {
+                tlas_stack[tlas_ptr++] = tnode.left_child;
+                tlas_stack[tlas_ptr++] = tnode.right_child;
+            }
+        }
+        else if (hit_l) tlas_stack[tlas_ptr++] = tnode.left_child;
+        else if (hit_r) tlas_stack[tlas_ptr++] = tnode.right_child;
+    }
+
+    if (found)
+        hit.pos = ray_world.origin + ray_world.dir * hit.t;
+
+    return found;
+}
+
+// --------------------------------------------------------- TLAS traversal (any hit / shadow)
+
+bool scene_occluded(vec3 origin, vec3 dir, float max_t)
+{
+    s_ray r;
+    r.origin  = origin;
+    r.dir     = dir;
+    r.inv_dir = 1.0 / dir;
+
+    uint tlas_stack[64];
+    uint tlas_ptr = 0;
+    tlas_stack[tlas_ptr++] = 0;
+
+    while (tlas_ptr > 0)
+    {
+        uint        tlas_idx = tlas_stack[--tlas_ptr];
+        s_tlas_node tnode    = tlas_nodes[tlas_idx];
+
+        float tnear;
+        if (!intersect_aabb(r,
+                            tnode.bbox_min.xyz,
+                            tnode.bbox_max.xyz,
+                            max_t, tnear))
+            continue;
+
+        if (tnode.left_child == 0 && tnode.right_child == 0)
+        {
+            uint  mesh_idx = tnode.mesh_index;
+            vec3  mesh_pos = meshes[mesh_idx].position.xyz;
+
+            s_ray lr;
+            lr.origin  = r.origin - mesh_pos;
+            lr.dir     = r.dir;
+            lr.inv_dir = r.inv_dir;
+
+            if (blas_intersect_any(lr, mesh_idx, max_t))
+                return true;    // early exit — fully skips remaining TLAS nodes
+            continue;
+        }
+
+        if (tnode.right_child != 0) tlas_stack[tlas_ptr++] = tnode.right_child;
+        if (tnode.left_child  != 0) tlas_stack[tlas_ptr++] = tnode.left_child;
+    }
+    return false;
+}
+
+// --------------------------------------------------------- shading
+
+const vec3  SUN_DIR       = normalize(vec3(-0.6, 1.0, 0.4));
+const vec3  SUN_COLOR     = vec3(1.0);
+const vec3  AMBIENT_COLOR = vec3(0.1, 0.12, 0.18);
+const float SPECULAR_POW  = 32.0;
+const float SHADOW_BIAS   = 1e-3;
+const float SUN_DIST      = 1e10; // effectively infinite — used as shadow max_t
 
 vec3 shade(s_hit hit, s_ray camera_ray)
 {
@@ -272,16 +414,15 @@ vec3 shade(s_hit hit, s_ray camera_ray)
     vec3 V = -camera_ray.dir;
     vec3 H = normalize(L + V);
 
-    vec3 shadow_origin = hit.pos + hit.geo_normal * SHADOW_BIAS;
-    float in_shadow = scene_occluded(shadow_origin, L) ? 0.0 : 1.0;
+    vec3  shadow_origin = hit.pos + hit.geo_normal * SHADOW_BIAS;
+    float shadow = scene_occluded(shadow_origin, L, SUN_DIST) ? 0.0 : 1.0;
 
-    float diffuse  = max(dot(N, L), 0.0);
-    float specular = pow(max(dot(N, H), 0.0), SPECULAR_POW);
+    float diff = max(dot(N, L), 0.0);
+    float spec = pow(max(dot(N, H), 0.0), SPECULAR_POW);
 
-    vec3 color = AMBIENT_COLOR
-               + in_shadow * SUN_COLOR * diffuse
-               + in_shadow * SUN_COLOR * specular * 0.4;
-    return color;
+    return AMBIENT_COLOR
+         + shadow * SUN_COLOR * diff
+         + shadow * SUN_COLOR * spec * 0.4;
 }
 
 vec3 sky_color(vec3 dir)
@@ -290,6 +431,8 @@ vec3 sky_color(vec3 dir)
     return mix(vec3(1.0), vec3(0.5, 0.7, 1.0), t);
 }
 
+// --------------------------------------------------------- main
+
 void main()
 {
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
@@ -297,19 +440,21 @@ void main()
         pixel.y >= int(u_resolution.y))
         return;
 
-    vec2 uv  = (vec2(pixel) + 0.5) / u_resolution * 2.0 - 1.0;
-    uv.x    *= u_resolution.x / u_resolution.y;
+    vec2 uv = (vec2(pixel) + 0.5) / u_resolution * 2.0 - 1.0;
+    uv.x *= u_resolution.x / u_resolution.y;
 
     s_ray ray;
-    ray.origin = vec3(0.0);
-    ray.dir    = normalize(vec3(uv, -1.0));
+    ray.origin  = vec3(0.0);
+    ray.dir     = normalize(vec3(uv, -1.0));
+    ray.inv_dir = 1.0 / ray.dir;   // computed once, reused everywhere
 
     s_hit hit;
-    vec3 color;
+    vec3  color;
 
     if (scene_intersect(ray, hit))
-		color = shade(hit, ray);
+        color = shade(hit, ray);
     else
         color = sky_color(ray.dir);
+
     imageStore(u_output, pixel, vec4(color, 1.0));
 }

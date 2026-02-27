@@ -20,13 +20,14 @@ void	create_balls(t_scene *scene)
 	t_mesh	ball;
 
 	i = 0;
-	while (i < 10)
+	while (i < 20)
 	{
 		j = 0;
-		while (j < 5)
+		while (j < 10)
 		{
-			ball = generate_uv_sphere(5, 5, 0.3f);
-			ball.position = (t_vec4){(i * 0.8f) - 1.0f, (j * 0.8f) - 1.0f, -5.0f, 0.0f};
+			ball = generate_uv_sphere(32, 32, 0.3f);
+			ball.smooth = 0;
+			ball.position = (t_vec4){(i * 0.8f) - 4.0f, (j * 0.8f) - 4.0f, -5.0f, 0.0f};
 			scene_add_mesh(scene, ball);
 			j++;
 		}
@@ -64,9 +65,19 @@ int	main(void)
 	fullscreen_program = shader_create_graphics("shaders/fullscreen.vert.glsl",
 			"shaders/fullscreen.frag.glsl");
 	scene = scene_create(8);
-	create_balls(&scene);
+	t_mesh  cone = generate_cone(32, 32, 1.0f, 3.0f);
+	t_mesh  cone2 = generate_cone(32, 32, 1.0f, 3.0f);
+  t_mesh  plane = generate_plane(10.0f, 10.0f);
+	cone.position = (t_vec4){-2.0f, -1.0f, -3.0f, 0.0f};
+	cone2.position = (t_vec4){2.0f, -1.0f, -3.0f, 0.0f};
+	plane.position = (t_vec4){0.0f, -1.0f, 0.0f, 0.0f};
+	scene_add_mesh(&scene, cone);
+	scene_add_mesh(&scene, cone2);
+	scene_add_mesh(&scene, plane);
 	scene_upload_triangles(&scene);
 	scene_upload_bvh_nodes(&scene);
+	scene_rebuild_tlas(&scene);
+	scene_upload_tlas_nodes(&scene);
 	printf("%d\n", scene.triangle_count);
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
@@ -79,14 +90,22 @@ int	main(void)
 	loc_resolution = glGetUniformLocation(compute_program, "u_resolution");
 	loc_mesh_count = glGetUniformLocation(compute_program, "u_mesh_count");
 	loc_accumulation_tex_fs = glGetUniformLocation(fullscreen_program, "u_accumulation_tex");
+	float time = 0.0f;
 	while (!glfwWindowShouldClose(window))
 	{
+		time += 0.6f;
 		if (scene.desc_dirty)
 			scene_upload_descriptors(&scene);
+		if (scene.tlas_dirty)
+		{
+			scene_rebuild_tlas(&scene);
+			scene_upload_tlas_nodes(&scene);
+		}
 		glUseProgram(compute_program);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, scene.ssbo_triangles);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, scene.ssbo_meshes);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, scene.ssbo_bvh_nodes);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, scene.ssbo_tlas_nodes);
 		glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glUniform2f(loc_resolution, (float)WIDTH, (float)HEIGHT);
 		glUniform1ui(loc_mesh_count, scene.mesh_count);

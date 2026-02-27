@@ -5,6 +5,9 @@
 #include "rt_math.h"
 #include "triangle.h"
 
+// Forward declaration
+typedef struct s_mesh_descriptor t_mesh_descriptor;
+
 // BVH node for GPU (32 bytes per node, std430 aligned)
 typedef struct s_bvh_node {
 	t_vec4		bbox_min;      // xyz = min corner, w = unused
@@ -43,5 +46,36 @@ t_bvh bvh_build(t_triangle *triangles, uint32_t tri_count);
 
 // Destroy a BVH
 void bvh_destroy(t_bvh *bvh);
+
+typedef struct s_tlas_node {
+	t_vec4		bbox_min;
+	t_vec4		bbox_max;
+	uint32_t	left_child;
+	uint32_t	right_child;
+	uint32_t	mesh_index;
+	uint32_t	_padding;
+}	t_tlas_node;
+
+typedef struct s_tlas {
+	t_tlas_node	*nodes;
+	uint32_t	node_count;
+}	t_tlas;
+
+typedef struct s_tlas_builder_ctx
+{
+	t_tlas_node			*nodes;
+	uint32_t			*node_idx;
+	t_mesh_descriptor	*descriptors;
+	uint32_t			mesh_count;
+}	t_tlas_builder_ctx;
+
+// Build a TLAS for the scene
+t_tlas tlas_build(t_mesh_descriptor *descriptors, uint32_t mesh_count);
+
+uint32_t	tlas_build_recursive(t_tlas_builder_ctx *ctx, uint32_t *indices,
+									uint32_t start, uint32_t count);
+
+// Destroy a TLAS
+void tlas_destroy(t_tlas *tlas);
 
 #endif

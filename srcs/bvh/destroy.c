@@ -16,3 +16,13 @@ void	bvh_destroy(t_bvh *bvh)
 	bvh->node_count = 0;
 	bvh->index_count = 0;
 }
+
+void  tlas_destroy(t_tlas *tlas)
+{
+	if (!tlas)
+		return ;
+	if (tlas->nodes)
+		free(tlas->nodes);
+	tlas->nodes = NULL;
+	tlas->node_count = 0;
+}

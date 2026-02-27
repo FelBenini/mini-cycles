@@ -65,3 +65,27 @@ void	scene_upload_bvh_nodes(t_scene *scene)
 	scene_upload_descriptors(scene);
 	scene->bvh_dirty = 0;
 }
+
+void	scene_rebuild_tlas(t_scene *scene)
+{
+	if (scene->tlas.nodes)
+		tlas_destroy(&scene->tlas);
+	
+	if (scene->mesh_count > 0)
+		scene->tlas = tlas_build(scene->descriptors, scene->mesh_count);
+	
+	scene->tlas_dirty = 1;
+}
+
+void	scene_upload_tlas_nodes(t_scene *scene)
+{
+	if (scene->tlas_dirty)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_tlas_nodes);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, 
+					sizeof(t_tlas_node) * scene->tlas.node_count,
+					scene->tlas.nodes, GL_STATIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, scene->ssbo_tlas_nodes);
+		scene->tlas_dirty = 0;
+	}
+}

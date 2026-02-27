@@ -12,5 +12,7 @@ t_scene	scene_create(uint32_t initial_capacity)
 	glGenBuffers(1, &scene.ssbo_triangles);
 	glGenBuffers(1, &scene.ssbo_meshes);
 	glGenBuffers(1, &scene.ssbo_bvh_nodes);
+	glGenBuffers(1, &scene.ssbo_tlas_nodes);
+	scene.tlas_dirty = 1;
 	return (scene);
 }
