@@ -5,10 +5,11 @@ t_camera	camera_create(float x, float y, float z, float fov_deg)
 {
 	t_camera	cam;
 
-	cam.pos   = (t_vec4){x, y, z, 0.0f};
-	cam.yaw   = 0.0f;
+	cam.pos = (t_vec4){x, y, z, 0.0f};
+	cam.yaw = 0.0f;
 	cam.pitch = 0.0f;
-	cam.fov   = fov_deg * (3.14159265f / 180.0f);
+	cam.fov = fov_deg * (3.14159265f / 180.0f);
+	cam.is_active = 0;
 	return (cam);
 }
 

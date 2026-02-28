@@ -3,6 +3,7 @@
 
 # include "rt_math.h"
 # include "../glad/include/glad/glad.h"
+# include <GLFW/glfw3.h>
 
 typedef struct s_camera
 {
@@ -13,6 +14,7 @@ typedef struct s_camera
 	float	fov;
 	float	yaw;
 	float	pitch;
+	int		is_active;
 }	t_camera;
 
 typedef struct s_cam_uniforms
@@ -32,5 +34,6 @@ void			upload_camera(GLuint program, t_cam_uniforms u, t_camera *cam);
 void			camera_update_basis(t_camera *cam);
 t_cam_uniforms	get_cam_uniform_locations(GLuint program);
 void			upload_camera(GLuint program, t_cam_uniforms u, t_camera *cam);
+void			mouse_button_callback(GLFWwindow *win, int button, int action, int mods);
 
 #endif

@@ -56,6 +56,15 @@ static void	render_frame(t_cycles cycles, GLint loc_resolution,
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+static void	register_callbacks(t_cycles cycles, t_camera *cam)
+{
+	glfwSetInputMode(cycles.win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetWindowUserPointer(cycles.win, cam);
+	glfwSetCursorPosCallback(cycles.win, mouse_callback);
+	glfwSetScrollCallback(cycles.win, scroll_callback);
+	glfwSetMouseButtonCallback(cycles.win, mouse_button_callback);
+}
+
 int	main(void)
 {
 	t_cycles		cycles;
@@ -74,10 +83,7 @@ int	main(void)
 	scene_rebuild_tlas(&scene);
 	scene_upload_tlas_nodes(&scene);
 	cam = camera_create(0.0f, 0.0f, 3.0f, 60.0f);
-	glfwSetInputMode(cycles.win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetWindowUserPointer(cycles.win, &cam);
-	glfwSetCursorPosCallback(cycles.win, mouse_callback);
-	glfwSetScrollCallback(cycles.win, scroll_callback);
+	register_callbacks(cycles, &cam);
 	cam_u = get_cam_uniform_locations(cycles.compute_program);
 	loc_resolution = glGetUniformLocation(cycles.compute_program,
 			"u_resolution");
