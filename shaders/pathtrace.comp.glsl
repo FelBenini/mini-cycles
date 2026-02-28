@@ -3,6 +3,11 @@ layout (local_size_x = 8, local_size_y = 8) in;
 layout (binding = 0, rgba32f) uniform image2D u_output;
 
 uniform vec2 u_resolution;
+uniform vec3  u_cam_pos;
+uniform vec3  u_cam_forward;
+uniform vec3  u_cam_right;
+uniform vec3  u_cam_up;
+uniform float u_cam_fov; 
 
 // ------------------------------------------------------------------ structs --
 
@@ -444,13 +449,22 @@ void main()
         pixel.y >= int(u_resolution.y))
         return;
 
-    vec2 uv = (vec2(pixel) + 0.5) / u_resolution * 2.0 - 1.0;
-    uv.x *= u_resolution.x / u_resolution.y;
+	// NDC coords, aspect-corrected
+	vec2 uv = (vec2(pixel) + 0.5) / u_resolution * 2.0 - 1.0;
+	uv.x *= u_resolution.x / u_resolution.y;
 
-    s_ray ray;
-    ray.origin  = vec3(0.0);
-    ray.dir     = normalize(vec3(uv, -1.0));
-    ray.inv_dir = 1.0 / ray.dir;   // computed once, reused everywhere
+	// Scale by half-FOV to get view-space offset
+	float half_fov = tan(u_cam_fov * 0.5);
+	vec3 ray_dir = normalize(
+	    u_cam_forward
+	    + uv.x * half_fov * u_cam_right
+	    + uv.y * half_fov * u_cam_up
+	);
+
+	s_ray ray;
+	ray.origin  = u_cam_pos;
+	ray.dir     = ray_dir;
+	ray.inv_dir = 1.0 / ray_dir;
 
     s_hit hit;
     vec3  color;
