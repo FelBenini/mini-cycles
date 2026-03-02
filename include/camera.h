@@ -15,6 +15,7 @@ typedef struct s_camera
 	float	yaw;
 	float	pitch;
 	int		is_active;
+	int		dirty;
 }	t_camera;
 
 typedef struct s_cam_uniforms

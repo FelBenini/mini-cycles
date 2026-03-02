@@ -23,6 +23,7 @@ void	mouse_callback(GLFWwindow *win, double x, double y)
 		g_first_move = 1;
 		return;
 	}
+	cam->dirty = 1;
 	now = glfwGetTime();
 	dt = now - g_last_time;
 	g_last_time = now;
@@ -46,6 +47,7 @@ void	scroll_callback(GLFWwindow *win, double xoffset, double yoffset)
 	t_camera	*cam;
 
 	cam = glfwGetWindowUserPointer(win);
+	cam->dirty = 1;
 	(void)xoffset;
 	cam->fov -= (float)yoffset * 0.05f;
 	if (cam->fov < 0.17f)

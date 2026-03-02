@@ -41,7 +41,7 @@ t_cycles	init_cycles(void)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    cycles.win = glfwCreateWindow(WIDTH, HEIGHT, "GPU Pathtracer Skeleton", NULL, NULL);
+    cycles.win = glfwCreateWindow(WIDTH, HEIGHT, "miniCycles", NULL, NULL);
     glfwMakeContextCurrent(cycles.win);
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {

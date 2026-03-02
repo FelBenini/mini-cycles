@@ -10,6 +10,7 @@ t_camera	camera_create(float x, float y, float z, float fov_deg)
 	cam.pitch = 0.0f;
 	cam.fov = fov_deg * (3.14159265f / 180.0f);
 	cam.is_active = 0;
+	cam.dirty = 0;
 	return (cam);
 }
 
