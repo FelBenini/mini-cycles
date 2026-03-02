@@ -1,5 +1,6 @@
 #include "input.h"
 #include "camera.h"
+#include <GLFW/glfw3.h>
 
 void	handle_input(GLFWwindow *win, t_camera *cam)
 {
@@ -39,9 +40,26 @@ void	handle_input(GLFWwindow *win, t_camera *cam)
 		cam->dirty = 1;
 		cam->pos.y -= CAM_SPEED;
 	}
-	if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	if (glfwGetKey(win, GLFW_KEY_UP) == GLFW_PRESS)
 	{
 		cam->dirty = 1;
-		glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		cam->pitch += 0.01f;
 	}
+	if (glfwGetKey(win, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		cam->dirty = 1;
+		cam->pitch -= 0.01f;
+	}
+	if (glfwGetKey(win, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		cam->dirty = 1;
+		cam->yaw += 0.01f;
+	}
+	if (glfwGetKey(win, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		cam->dirty = 1;
+		cam->yaw -= 0.01f;
+	}
+	if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(win, 1);
 }
