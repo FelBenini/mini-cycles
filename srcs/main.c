@@ -5,10 +5,8 @@
 #include "rt_math.h"
 #include "scene.h"
 #include <GLFW/glfw3.h>
-#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -19,11 +17,17 @@ void	create_balls(t_scene *scene)
 	plane.position = (t_vec4){0.0f, -1.0f, 0.0f, 0.0f};
 	t_mesh	ball = generate_uv_sphere(32, 32, 1.0f);
 	ball.position = (t_vec4){0.0f, 0.0f, 0.0f ,0.0f};
-	t_mesh	cone = generate_cone(12, 12, 1.0f, 3.0f);
-	cone.position = (t_vec4){-1.0f, 0.0f, -1.0f, 0.0f};
+	t_mesh	cone = generate_cone(12, 32, 1.0f, 3.0f);
+	cone.position = (t_vec4){1.5f, 0.0f, 0.0f, 0.0f};
+	t_mesh	cube = generate_cube(2.0f);
+	cube.position = (t_vec4){-2.0f, 0.0f,0.0f, 0.0f};
+	t_mesh	cylinder = generate_cylinder(12, 32, 1.0f, 3.0f);
+	cylinder.position = (t_vec4){3.0f, 0.0f, 0.0f, 0.0f};
 	scene_add_mesh(scene, ball);
 	scene_add_mesh(scene, plane);
 	scene_add_mesh(scene, cone);
+	scene_add_mesh(scene, cube);
+	scene_add_mesh(scene, cylinder);
 }
 
 static void	render_frame(
