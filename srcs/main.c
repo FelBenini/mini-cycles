@@ -36,7 +36,7 @@ void	create_balls(t_scene *scene)
 	mat_plane = scene_add_material(scene, (t_material){
 		.albedo = (t_vec4){0.7f, 0.7f, 0.7f, 1.0f},
 		.emission = (t_vec4){0.0f, 0.0f, 0.0f, 1.0f},
-		.roughness = 1.0f,
+		.roughness = 0.0f,
 		.metallic = 0.0f,
 		.ior = 1.5f,
 		.type = 0

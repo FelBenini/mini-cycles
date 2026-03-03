@@ -52,66 +52,113 @@ static void	compute_meshes_bbox(t_mesh_descriptor *descriptors, uint32_t *indice
 	}
 }
 
+static float	sah_surface_area(t_vec4 mn, t_vec4 mx)
+{
+	float	ex;
+	float	ey;
+	float	ez;
+
+	ex = mx.x - mn.x;
+	ey = mx.y - mn.y;
+	ez = mx.z - mn.z;
+	return (2.0f * (ex * ey + ey * ez + ez * ex));
+}
+
 static uint32_t	find_split_index(t_mesh_descriptor *descriptors, uint32_t *indices,
 								uint32_t start, uint32_t count,
 								t_vec4 bbox_min, t_vec4 bbox_max)
 {
-	float				dx;
-	float				dy;
-	float				dz;
-	uint32_t			axis;
-	float				split_pos;
-	uint32_t			lo;
-	uint32_t			hi;
-	uint32_t			temp;
-	float				pos_component;
-	t_mesh_descriptor	*desc;
+	float		best_cost;
+	uint32_t	best_split;
+	uint32_t	best_axis;
+	uint32_t	axis;
+	uint32_t	i;
+	float		parent_sa;
+	float		cost;
+	t_vec4		lmin, lmax, rmin, rmax;
+	t_vec4		mesh_min, mesh_max;
+	t_vec4		prefix_min[256];
+	t_vec4		prefix_max[256];
 
-	dx = bbox_max.x - bbox_min.x;
-	dy = bbox_max.y - bbox_min.y;
-	dz = bbox_max.z - bbox_min.z;
+	parent_sa  = sah_surface_area(bbox_min, bbox_max);
+	best_cost  = 1e30f;
+	best_split = start + 1;
+	best_axis  = 0;
+
 	axis = 0;
-	if (dy > dx)
-		axis = 1;
-	if (dz > (axis == 0 ? dx : dy))
-		axis = 2;
-	if (axis == 0)
-		split_pos = bbox_min.x + dx * 0.5f;
-	else if (axis == 1)
-		split_pos = bbox_min.y + dy * 0.5f;
-	else
-		split_pos = bbox_min.z + dz * 0.5f;
-	lo = start;
-	hi = start + count - 1;
-	while (lo <= hi)
+	while (axis < 3)
 	{
-		desc = &descriptors[indices[lo]];
-		if (axis == 0)
-			pos_component = desc->position.x;
-		else if (axis == 1)
-			pos_component = desc->position.y;
-		else
-			pos_component = desc->position.z;
-
-		if (pos_component < split_pos)
+		uint32_t j = start + 1;
+		while (j < start + count)
 		{
-			lo++;
+			uint32_t key = indices[j];
+			float key_c = (&descriptors[key].position.x)[axis];
+			int32_t k = (int32_t)j - 1;
+			while (k >= (int32_t)start &&
+				   (&descriptors[indices[k]].position.x)[axis] > key_c)
+			{
+				indices[k + 1] = indices[k];
+				k--;
+			}
+			indices[k + 1] = key;
+			j++;
 		}
-		else
+		compute_mesh_bbox(&descriptors[indices[start]], &lmin, &lmax);
+		prefix_min[0] = lmin;
+		prefix_max[0] = lmax;
+		i = 1;
+		while (i < count)
 		{
-			temp      = indices[lo];
-			indices[lo] = indices[hi];
-			indices[hi] = temp;
-			if (hi == 0)
-				break ;
-			hi--;
+			compute_mesh_bbox(&descriptors[indices[start + i]], &mesh_min, &mesh_max);
+			prefix_min[i].x = mesh_min.x < prefix_min[i-1].x ? mesh_min.x : prefix_min[i-1].x;
+			prefix_min[i].y = mesh_min.y < prefix_min[i-1].y ? mesh_min.y : prefix_min[i-1].y;
+			prefix_min[i].z = mesh_min.z < prefix_min[i-1].z ? mesh_min.z : prefix_min[i-1].z;
+			prefix_min[i].w = 0.0f;
+			prefix_max[i].x = mesh_max.x > prefix_max[i-1].x ? mesh_max.x : prefix_max[i-1].x;
+			prefix_max[i].y = mesh_max.y > prefix_max[i-1].y ? mesh_max.y : prefix_max[i-1].y;
+			prefix_max[i].z = mesh_max.z > prefix_max[i-1].z ? mesh_max.z : prefix_max[i-1].z;
+			prefix_max[i].w = 0.0f;
+			i++;
 		}
+		compute_mesh_bbox(&descriptors[indices[start + count - 1]], &rmin, &rmax);
+		i = count - 1;
+		while (i > 0)
+		{
+			float sa_left  = sah_surface_area(prefix_min[i - 1], prefix_max[i - 1]);
+			float sa_right = sah_surface_area(rmin, rmax);
+			cost = (sa_left * (float)i + sa_right * (float)(count - i)) / parent_sa;
+			if (cost < best_cost)
+			{
+				best_cost  = cost;
+				best_split = start + i;
+				best_axis  = axis;
+			}
+			compute_mesh_bbox(&descriptors[indices[start + i - 1]], &mesh_min, &mesh_max);
+			if (mesh_min.x < rmin.x) rmin.x = mesh_min.x;
+			if (mesh_min.y < rmin.y) rmin.y = mesh_min.y;
+			if (mesh_min.z < rmin.z) rmin.z = mesh_min.z;
+			if (mesh_max.x > rmax.x) rmax.x = mesh_max.x;
+			if (mesh_max.y > rmax.y) rmax.y = mesh_max.y;
+			if (mesh_max.z > rmax.z) rmax.z = mesh_max.z;
+			i--;
+		}
+		axis++;
 	}
-	if (lo == start)
-		lo = start + 1;
-	else if (lo == start + count)
-		lo = start + count - 1;
-	return (lo);
+	uint32_t j = start + 1;
+	while (j < start + count)
+	{
+		uint32_t key = indices[j];
+		float key_c = (&descriptors[key].position.x)[best_axis];
+		int32_t k = (int32_t)j - 1;
+		while (k >= (int32_t)start && (&descriptors[indices[k]].position.x)[best_axis] > key_c)
+		{
+			indices[k + 1] = indices[k];
+			k--;
+		}
+		indices[k + 1] = key;
+		j++;
+	}
+	return (best_split);
 }
 
 static uint32_t	filter_invalid_indices(uint32_t *indices,

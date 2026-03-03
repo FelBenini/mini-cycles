@@ -170,7 +170,7 @@ bool intersect_triangle(
 
 void blas_intersect(s_ray ray, uint mesh_idx, inout s_hit hit)
 {
-    uint stack[64];
+    uint stack[48];
     uint ptr = 0;
     stack[ptr++] = meshes[mesh_idx].bvh_root;
 
@@ -179,36 +179,25 @@ void blas_intersect(s_ray ray, uint mesh_idx, inout s_hit hit)
         uint node_idx = stack[--ptr];
         s_bvh_node node = bvh_nodes[node_idx];
 
-        float tnear;
-        if (!intersect_aabb(ray,
-                            node.bbox_min.xyz,
-                            node.bbox_max.xyz,
-                            hit.t,
-                            tnear))
-            continue;
-
+        // Leaf node — test triangles
         if (node.tri_count > 0)
         {
             uint base = meshes[mesh_idx].tri_offset + node.tri_offset;
-
             for (uint i = 0; i < node.tri_count; i++)
             {
                 float t;
                 vec3 bary;
                 uint tri_idx = base + i;
 
-                if (intersect_triangle(ray, triangles[tri_idx], t, bary)
-                    && t < hit.t)
+                if (intersect_triangle(ray, triangles[tri_idx], t, bary) && t < hit.t)
                 {
-                    hit.t = t;
+                    hit.t          = t;
                     hit.mesh_index = mesh_idx;
 
-                    vec3 e1 = triangles[tri_idx].v1.xyz - triangles[tri_idx].v0.xyz;
-                    vec3 e2 = triangles[tri_idx].v2.xyz - triangles[tri_idx].v0.xyz;
+                    vec3 e1    = triangles[tri_idx].v1.xyz - triangles[tri_idx].v0.xyz;
+                    vec3 e2    = triangles[tri_idx].v2.xyz - triangles[tri_idx].v0.xyz;
                     vec3 geo_n = normalize(cross(e1, e2));
-                    if (dot(geo_n, ray.dir) > 0.0)
-                        geo_n = -geo_n;
-
+                    if (dot(geo_n, ray.dir) > 0.0) geo_n = -geo_n;
                     hit.geo_normal = geo_n;
 
                     if (meshes[mesh_idx].smooth_shade == 1u)
@@ -217,10 +206,8 @@ void blas_intersect(s_ray ray, uint mesh_idx, inout s_hit hit)
                             bary.x * triangle_normals[tri_idx].n0.xyz +
                             bary.y * triangle_normals[tri_idx].n1.xyz +
                             bary.z * triangle_normals[tri_idx].n2.xyz;
-
                         hit.normal = normalize(interp);
-                        if (dot(hit.normal, geo_n) < 0.0)
-                            hit.normal = -hit.normal;
+                        if (dot(hit.normal, geo_n) < 0.0) hit.normal = -hit.normal;
                     }
                     else
                         hit.normal = geo_n;
@@ -229,8 +216,33 @@ void blas_intersect(s_ray ray, uint mesh_idx, inout s_hit hit)
             continue;
         }
 
-        if (node.right_child != 0) stack[ptr++] = node.right_child;
-        if (node.left_child  != 0) stack[ptr++] = node.left_child;
+        // ---- Ordered child traversal ----
+        float t_left  = 1e30;
+        float t_right = 1e30;
+
+        bool hit_left  = (node.left_child  != 0) && intersect_aabb(ray,
+                            bvh_nodes[node.left_child].bbox_min.xyz,
+                            bvh_nodes[node.left_child].bbox_max.xyz,
+                            hit.t, t_left);
+
+        bool hit_right = (node.right_child != 0) && intersect_aabb(ray,
+                            bvh_nodes[node.right_child].bbox_min.xyz,
+                            bvh_nodes[node.right_child].bbox_max.xyz,
+                            hit.t, t_right);
+
+        // Push farther child first — nearer child ends up on top of stack
+        if (hit_left && hit_right)
+        {
+            if (t_left < t_right) {
+                stack[ptr++] = node.right_child; // farther
+                stack[ptr++] = node.left_child;  // nearer (popped first)
+            } else {
+                stack[ptr++] = node.left_child;  // farther
+                stack[ptr++] = node.right_child; // nearer (popped first)
+            }
+        }
+        else if (hit_left)  stack[ptr++] = node.left_child;
+        else if (hit_right) stack[ptr++] = node.right_child;
     }
 }
 
@@ -241,7 +253,7 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
     hit.t = 1e30;
     bool found = false;
 
-    uint stack[64];
+    uint stack[48];
     uint ptr = 0;
     stack[ptr++] = 0;
 
@@ -277,8 +289,32 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
             continue;
         }
 
-        if (node.right_child != 0) stack[ptr++] = node.right_child;
-        if (node.left_child  != 0) stack[ptr++] = node.left_child;
+        // ---- Ordered child traversal ----
+        float t_left  = 1e30;
+        float t_right = 1e30;
+
+        bool hit_left  = (node.left_child  != 0) && intersect_aabb(ray_world,
+                            tlas_nodes[node.left_child].bbox_min.xyz,
+                            tlas_nodes[node.left_child].bbox_max.xyz,
+                            hit.t, t_left);
+
+        bool hit_right = (node.right_child != 0) && intersect_aabb(ray_world,
+                            tlas_nodes[node.right_child].bbox_min.xyz,
+                            tlas_nodes[node.right_child].bbox_max.xyz,
+                            hit.t, t_right);
+
+        if (hit_left && hit_right)
+        {
+            if (t_left < t_right) {
+                stack[ptr++] = node.right_child;
+                stack[ptr++] = node.left_child;
+            } else {
+                stack[ptr++] = node.left_child;
+                stack[ptr++] = node.right_child;
+            }
+        }
+        else if (hit_left)  stack[ptr++] = node.left_child;
+        else if (hit_right) stack[ptr++] = node.right_child;
     }
 
     if (found)
@@ -328,7 +364,7 @@ vec3 trace_path(s_ray ray, inout uint seed)
     vec3 throughput = vec3(1.0);
     vec3 radiance   = vec3(0.0);
 
-    const int MAX_BOUNCES = 4;
+    const int MAX_BOUNCES = 8;
 
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
     {
@@ -355,7 +391,6 @@ vec3 trace_path(s_ray ray, inout uint seed)
             break;
         }
 
-        // direct sun lighting
         float sun_dot = max(dot(N, SUN_DIR), 0.0);
         if (sun_dot > 0.0)
         {
@@ -371,19 +406,14 @@ vec3 trace_path(s_ray ray, inout uint seed)
 
 		vec3 V = -ray.dir;
 
-		// Perfect reflection direction
 		vec3 R = reflect(ray.dir, N);
 
-		// Clamp roughness to avoid degenerate behavior
 		float rough = clamp(mat.roughness, 0.001, 1.0);
 
-		// ---- Glossy reflection ----
-		// Perturb reflection direction by sampling around it
 		vec3 glossy_dir = normalize(
 		    R + rough * sample_hemisphere(N, seed)
 		);
 
-		// ---- Diffuse direction ----
 		vec3 diffuse_dir = sample_hemisphere(N, seed);
 
 		vec3 new_dir = normalize(mix(glossy_dir, diffuse_dir, rough));
@@ -392,11 +422,9 @@ vec3 trace_path(s_ray ray, inout uint seed)
 		ray.dir     = new_dir;
 		ray.inv_dir = 1.0 / new_dir;
 
-		// Energy balance
 		vec3 specular_color = mix(vec3(1.0), albedo, mat.metallic);
 		vec3 diffuse_color  = albedo * (1.0 - mat.metallic);
 
-		// Blend energy contribution
 		throughput *= mix(specular_color, diffuse_color, rough);
 
         float p = max(throughput.r, max(throughput.g, throughput.b));
