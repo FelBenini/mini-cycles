@@ -52,6 +52,8 @@ void	process_line(t_scene *scene, char *line)
 		process_cube(scene, line);
 	if (strncmp(&line[i], "A", 1) == 0)
 		process_ambient(scene, line);
+	if (strncmp(&line[i], "to", 2) == 0)
+		process_torus(scene, line);
 }
 
 t_scene	parse_scene(char *filename)

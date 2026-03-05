@@ -25,6 +25,14 @@ t_vec4	vec4_normalize(t_vec4 v)
 	return (v);
 }
 
+t_vec4	vec4_sub(t_vec4 a, t_vec4 b)
+{
+	t_vec4	res;
+
+	res = vec4_create(a.x - b.x, a.y - b.y, a.z - b.z, a.w);
+	return (res);
+}
+
 t_vec4	vec4_cross(t_vec4 a, t_vec4 b)
 {
 	t_vec4	v;

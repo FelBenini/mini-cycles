@@ -24,7 +24,7 @@ t_bvh	bvh_build(t_triangle *triangles, uint32_t tri_count)
 	ctx.node_idx = &bvh.node_count;
 	ctx.triangles = triangles;
 	ctx.indices = bvh.indices;
-	ctx.max_leaf_size = 4;
+	ctx.max_leaf_size = 8;
 	bvh_build_recursive(&ctx, 0, tri_count);
 	bvh.index_count = tri_count;
 	return (bvh);

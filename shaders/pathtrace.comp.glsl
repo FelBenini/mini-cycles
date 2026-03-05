@@ -190,7 +190,7 @@ bool intersect_triangle(
 
 void blas_intersect(s_ray ray, uint mesh_idx, inout s_hit hit)
 {
-    uint stack[48];
+    uint stack[96];
     uint ptr = 0;
     stack[ptr++] = meshes[mesh_idx].bvh_root;
 
@@ -272,7 +272,7 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
     hit.t  = 1e30;
     bool found = false;
 
-    uint stack[48];
+    uint stack[96];
     uint ptr = 0;
     stack[ptr++] = 0;
 
@@ -355,7 +355,7 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
 
 bool scene_intersect_shadow(s_ray ray_world, float max_t)
 {
-    uint stack[48];
+    uint stack[96];
     uint ptr = 0;
     stack[ptr++] = 0;
 
@@ -380,7 +380,7 @@ bool scene_intersect_shadow(s_ray ray_world, float max_t)
             ray.dir     = R_inv * ray_world.dir;
             ray.inv_dir = 1.0 / ray.dir;
 
-            uint bstack[48];
+            uint bstack[96];
             uint bptr = 0;
             bstack[bptr++] = meshes[mesh_idx].bvh_root;
 
@@ -466,7 +466,7 @@ vec3 trace_path(s_ray ray, inout uint seed)
     vec3 throughput = vec3(1.0);
     vec3 radiance   = vec3(0.0);
 
-    const int MAX_BOUNCES = 8;
+    const int MAX_BOUNCES = 4;
 
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
     {

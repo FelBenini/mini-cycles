@@ -29,6 +29,7 @@ t_vec3	vec3_from_vec4(t_vec4 v);
 
 t_vec4	vec4_create(float x, float y, float z, float w);
 t_vec4	vec4_normalize(t_vec4 v);
+t_vec4	vec4_sub(t_vec4 a, t_vec4 b);
 t_vec4	vec4_cross(t_vec4 a, t_vec4 b);
 
 // vec3
