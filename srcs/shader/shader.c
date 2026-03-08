@@ -1,9 +1,8 @@
-#include "../glad/include/glad/glad.h"
 #include "shader.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-static char	*read_file(const char *path)
+char	*read_file(const char *path)
 {
 	FILE	*file;
 	char	*buffer;
@@ -38,7 +37,7 @@ static char	*read_file(const char *path)
 	return (buffer);
 }
 
-static uint32_t	compile(GLenum type, const char *source)
+uint32_t	compile(GLenum type, const char *source)
 {
 	uint32_t	shader;
 	int			success;
