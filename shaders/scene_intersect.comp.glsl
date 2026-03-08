@@ -20,7 +20,6 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
                             tnear))
             continue;
 
-        // Leaf — intersect the mesh in its local space
         if (node.left_child == 0 && node.right_child == 0)
         {
             uint mesh_idx  = node.mesh_index;

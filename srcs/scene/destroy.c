@@ -14,6 +14,7 @@ void	scene_destroy(t_scene *scene)
 	free(scene->materials);
 	free(scene->triangles);
 	free(scene->bvhs);
+	scene_destroy_images(scene);
 	tlas_destroy(&scene->tlas);
 	glDeleteBuffers(1, &scene->ssbo_triangles);
 	glDeleteBuffers(1, &scene->ssbo_normals);

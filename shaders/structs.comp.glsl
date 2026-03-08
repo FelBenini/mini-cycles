@@ -11,6 +11,7 @@ uniform vec3  u_cam_up;
 uniform float u_cam_fov;
 
 uniform vec4  u_ambient_color;
+uniform int   u_sky_tex;
 
 // Progressive sampling control
 uniform uint u_frame_index;   // increment every frame
@@ -82,6 +83,13 @@ struct s_hit {
     uint  mesh_index;
 };
 
+struct s_image_meta {
+    uint width;
+    uint height;
+    uint channels;
+    uint pixel_offset;
+};
+
 // SSBOs
 
 layout(std430, binding = 1) readonly buffer Triangles        { s_triangle          triangles[];        };
@@ -90,3 +98,12 @@ layout(std430, binding = 3) readonly buffer Meshes           { s_mesh_descriptor
 layout(std430, binding = 4) readonly buffer BVHNodes         { s_bvh_node          bvh_nodes[];        };
 layout(std430, binding = 5) readonly buffer TLASNodes        { s_tlas_node         tlas_nodes[];       };
 layout(std430, binding = 6) readonly buffer Materials        { s_material          materials[];        };
+layout(std430, binding = 7) readonly buffer ImageMeta {
+    uint          img_count;
+	uint          _pad[3];
+    s_image_meta  img_info[];
+};
+
+layout(std430, binding = 8) readonly buffer ImagePixels {
+    uint pixels[];
+};

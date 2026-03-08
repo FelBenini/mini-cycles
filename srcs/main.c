@@ -21,6 +21,7 @@ static void	render_frame(
 	GLint loc_frame_index,
 	GLint loc_reset_samples,
 	GLint loc_ambient_color,
+	GLint loc_sky_tex,
 	GLint loc_accumulation_tex_fs,
 	t_scene scene,
 	uint32_t frame_index,
@@ -41,6 +42,7 @@ static void	render_frame(
 		GL_READ_WRITE, GL_RGBA32F);
 	glUniform2f(loc_resolution, (float)WIDTH, (float)HEIGHT);
 	glUniform1ui(loc_mesh_count, scene.mesh_count);
+	glUniform1i(loc_sky_tex, scene.sky_tex);
 	glUniform1ui(loc_frame_index, frame_index);
 	glUniform1ui(loc_reset_samples, reset_samples);
 
@@ -80,6 +82,7 @@ int	main(int argc, char *argv[])
 	GLint	loc_reset_samples;
 	GLint	loc_accumulation_tex_fs;
 	GLint	loc_ambient_color;
+	GLint	loc_sky_tex;
 
 	uint32_t frame_index = 0;
 	uint32_t reset_samples = 1;
@@ -91,6 +94,7 @@ int	main(int argc, char *argv[])
 	}
 	cycles = init_cycles();
 	scene = parse_scene(argv[1]);
+	scene_upload_images(&scene);
 	scene_upload_triangles(&scene);
 	scene_upload_materials(&scene);
 	scene_upload_bvh_nodes(&scene);
@@ -108,6 +112,8 @@ int	main(int argc, char *argv[])
 		cycles.compute_program, "u_reset_samples");
 	loc_ambient_color = glGetUniformLocation(
 				cycles.compute_program, "u_ambient_color");
+	loc_sky_tex = glGetUniformLocation(
+				cycles.compute_program, "u_sky_tex");
 	loc_accumulation_tex_fs = glGetUniformLocation(
 		cycles.fullscreen_program, "u_accumulation_tex");
 	while (!glfwWindowShouldClose(cycles.win))
@@ -141,6 +147,7 @@ int	main(int argc, char *argv[])
 			loc_frame_index,
 			loc_reset_samples,
 			loc_ambient_color,
+			loc_sky_tex,
 			loc_accumulation_tex_fs,
 			scene,
 			frame_index,

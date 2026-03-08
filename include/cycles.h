@@ -10,6 +10,8 @@
 # define BVH_SSBOS 4
 # define TLAS_SSBOS 5
 # define MATERIALS_SSBOS 6
+# define IMAGES_SSBOS 7
+# define PIXELS_SSBOS 8
 
 typedef struct s_cycles
 {

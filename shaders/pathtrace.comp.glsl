@@ -32,7 +32,7 @@ vec3 trace_path(s_ray ray, inout uint seed)
 
         if (!scene_intersect(ray, hit))
         {
-            radiance += throughput * sky_color();
+            radiance += throughput * sky_color(ray);
             break;
         }
 
