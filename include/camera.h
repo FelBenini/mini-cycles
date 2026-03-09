@@ -27,7 +27,7 @@ typedef struct s_cam_uniforms
 	GLint	fov;
 }	t_cam_uniforms;
 
-# define CAM_SPEED 0.05f
+# define CAM_SPEED 0.25f
 # define CAM_SENSITIVITY 0.05f
 
 t_camera		camera_create(float x, float y, float z, float fov_deg);

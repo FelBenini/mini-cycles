@@ -94,6 +94,15 @@ int	main(int argc, char *argv[])
 	}
 	cycles = init_cycles();
 	scene = parse_scene(argv[1]);
+	t_mesh	monkey = load_mesh_from_obj("assets/bunny.obj", 3.0f);
+	monkey.position = (t_vec4){0.0f, 0.3f, 0.0f, 1.0f};
+	monkey.direction = (t_vec4){0.0f, 0.0f, 0.0f, 1.0f};
+	t_material	material;
+	material.albedo = (t_vec4){0.8, 0.8f, 0.8f, 1.0f};
+	material.roughness = 0.8f;
+	material.metallic = 0.0f;
+	uint32_t idx = scene_add_material(&scene, material);
+	scene_add_mesh(&scene, monkey, idx);
 	scene_upload_images(&scene);
 	scene_upload_triangles(&scene);
 	scene_upload_materials(&scene);

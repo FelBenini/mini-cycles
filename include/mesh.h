@@ -27,4 +27,6 @@ t_mesh	generate_cylinder(int stacks, int slices, float radius, float height);
 
 t_mesh	generate_torus(int stacks, int slices, float major_radius, float minor_radius);
 
+t_mesh	load_mesh_from_obj(const char *filepath, float radius);
+
 #endif
