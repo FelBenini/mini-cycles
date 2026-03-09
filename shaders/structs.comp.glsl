@@ -12,7 +12,7 @@ uniform float u_cam_fov;
 
 uniform vec4  u_ambient_color;
 uniform int   u_sky_tex;
-
+uniform uint  u_light_count;
 // Progressive sampling control
 uniform uint u_frame_index;   // increment every frame
 uniform uint u_reset_samples; // set to 1 when camera moves
@@ -90,6 +90,20 @@ struct s_image_meta {
     uint pixel_offset;
 };
 
+#define LIGHT_SUN   0u
+#define LIGHT_POINT 1u
+#define LIGHT_SPOT  2u
+
+struct s_light
+{
+    uint type;
+
+    vec3 position;
+    vec3 direction;
+    vec3 color;
+
+    float intensity;
+};
 // SSBOs
 
 layout(std430, binding = 1) readonly buffer Triangles        { s_triangle          triangles[];        };
@@ -103,7 +117,10 @@ layout(std430, binding = 7) readonly buffer ImageMeta {
 	uint          _pad[3];
     s_image_meta  img_info[];
 };
-
 layout(std430, binding = 8) readonly buffer ImagePixels {
     uint pixels[];
+};
+layout(std430, binding = 9) readonly buffer LightBuffer
+{
+    s_light lights[];
 };

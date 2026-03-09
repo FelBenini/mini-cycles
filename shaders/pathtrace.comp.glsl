@@ -1,11 +1,40 @@
+vec3 sample_lights(vec3 pos, vec3 normal, float bias)
+{
+    vec3 result = vec3(0.0);
+
+    for (uint i = 0u; i < u_light_count; i++)
+    {
+        s_light light = lights[i];
+
+        if (light.type == LIGHT_SUN)
+        {
+            vec3 L = normalize(light.direction.xyz);
+            float NdotL = max(dot(normal, L), 0.0);
+            if (NdotL <= 0.0) continue;
+
+            s_ray shadow_ray;
+            shadow_ray.origin  = pos + normal * bias; // ← adaptive
+            shadow_ray.dir     = L;
+            shadow_ray.inv_dir = 1.0 / L;
+
+            s_hit shadow_hit;
+            if (scene_intersect(shadow_ray, shadow_hit))
+                continue;
+
+            result += light.color.xyz * light.intensity * NdotL;
+        }
+    }
+    return result;
+}
+
 vec3 sample_hemisphere(vec3 N, inout uint seed)
 {
     float r1 = rand(seed);
     float r2 = rand(seed);
 
     float phi       = 2.0 * 3.14159265 * r1;
-    float cos_theta = sqrt(1.0 - r2);
-    float sin_theta = sqrt(r2);
+    float cos_theta = sqrt(r2);
+    float sin_theta = sqrt(1.0 - r2);
 
     vec3 T = normalize(abs(N.x) > 0.1
         ? cross(vec3(0,1,0), N)
@@ -22,14 +51,11 @@ vec3 trace_path(s_ray ray, inout uint seed)
 {
     vec3 throughput = vec3(1.0);
     vec3 radiance   = vec3(0.0);
-
     const int MAX_BOUNCES = 4;
-
 
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
     {
         s_hit hit;
-
         if (!scene_intersect(ray, hit))
         {
             radiance += throughput * sky_color(ray);
@@ -43,18 +69,28 @@ vec3 trace_path(s_ray ray, inout uint seed)
         vec3 albedo   = mat.albedo.rgb;
         vec3 emission = mat.emission.rgb;
 
+        // Emissive: add and stop (already sampled directly if NEE hit it)
         radiance += throughput * emission;
-
-        if (length(emission) > 0.0)
-            break;
+        if (length(emission) > 0.0) break;
 
         float adaptive_bias = max(1e-4, hit.t * 1e-4);
 
+        // NEE: direct lighting, BRDF weight is albedo/pi * NdotL (baked into sample_lights)
+        // throughput carries previous bounces, albedo applied separately
+        vec3 direct = sample_lights(hit.pos, N, adaptive_bias);
+        radiance += throughput * albedo * direct; // albedo is the diffuse BRDF here
+
+        // Indirect: sample new direction
         float rough       = clamp(mat.roughness, 0.001, 1.0);
+        vec3  diffuse_dir = sample_hemisphere(N, seed);
         vec3  R           = reflect(ray.dir, N);
         vec3  glossy_dir  = normalize(R + rough * sample_hemisphere(N, seed));
-        vec3  diffuse_dir = sample_hemisphere(N, seed);
-        vec3  new_dir     = normalize(mix(glossy_dir, diffuse_dir, rough));
+
+        // Prevent glossy ray going below surface
+        if (dot(glossy_dir, N) < 0.0)
+            glossy_dir = diffuse_dir;
+
+        vec3 new_dir = normalize(mix(glossy_dir, diffuse_dir, rough));
 
         ray.origin  = hit.pos + hit.geo_normal * adaptive_bias;
         ray.dir     = new_dir;
@@ -64,14 +100,18 @@ vec3 trace_path(s_ray ray, inout uint seed)
         vec3 diffuse_color  = albedo * (1.0 - mat.metallic);
         throughput *= mix(specular_color, diffuse_color, rough);
 
-        float p = max(throughput.r, max(throughput.g, throughput.b));
-        if (bounce > 0)
+        // Early out for vanished throughput
+        if (max(throughput.r, max(throughput.g, throughput.b)) < 0.001)
+            break;
+
+        // Russian roulette
+        if (bounce >= 1)
         {
+            float p = clamp(max(throughput.r, max(throughput.g, throughput.b)), 0.05, 0.95);
             if (rand(seed) > p) break;
             throughput /= p;
         }
     }
-
     return radiance;
 }
 

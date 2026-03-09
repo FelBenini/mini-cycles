@@ -22,6 +22,7 @@ static void	render_frame(
 	GLint loc_reset_samples,
 	GLint loc_ambient_color,
 	GLint loc_sky_tex,
+	GLint loc_light_count,
 	GLint loc_accumulation_tex_fs,
 	t_scene scene,
 	uint32_t frame_index,
@@ -45,6 +46,8 @@ static void	render_frame(
 	glUniform1i(loc_sky_tex, scene.sky_tex);
 	glUniform1ui(loc_frame_index, frame_index);
 	glUniform1ui(loc_reset_samples, reset_samples);
+	glUniform1ui(loc_light_count, scene.light_count);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glDispatchCompute((WIDTH + 7) / 8, (HEIGHT + 7) / 8, 1);
 
@@ -62,7 +65,6 @@ static void	render_frame(
 
 static void	register_callbacks(t_cycles cycles, t_camera *cam)
 {
-	glfwSetInputMode(cycles.win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetWindowUserPointer(cycles.win, cam);
 	glfwSetCursorPosCallback(cycles.win, mouse_callback);
 	glfwSetScrollCallback(cycles.win, scroll_callback);
@@ -83,6 +85,7 @@ int	main(int argc, char *argv[])
 	GLint	loc_accumulation_tex_fs;
 	GLint	loc_ambient_color;
 	GLint	loc_sky_tex;
+	GLint	loc_light_count;
 
 	uint32_t frame_index = 0;
 	uint32_t reset_samples = 1;
@@ -94,16 +97,9 @@ int	main(int argc, char *argv[])
 	}
 	cycles = init_cycles();
 	scene = parse_scene(argv[1]);
-	t_mesh	monkey = load_mesh_from_obj("assets/bunny.obj", 3.0f);
-	monkey.position = (t_vec4){0.0f, 0.3f, 0.0f, 1.0f};
-	monkey.direction = (t_vec4){0.0f, 0.0f, 0.0f, 1.0f};
-	t_material	material;
-	material.albedo = (t_vec4){0.8, 0.8f, 0.8f, 1.0f};
-	material.roughness = 0.8f;
-	material.metallic = 0.0f;
-	uint32_t idx = scene_add_material(&scene, material);
-	scene_add_mesh(&scene, monkey, idx);
+
 	scene_upload_images(&scene);
+	scene_upload_lights(&scene);
 	scene_upload_triangles(&scene);
 	scene_upload_materials(&scene);
 	scene_upload_bvh_nodes(&scene);
@@ -123,8 +119,11 @@ int	main(int argc, char *argv[])
 				cycles.compute_program, "u_ambient_color");
 	loc_sky_tex = glGetUniformLocation(
 				cycles.compute_program, "u_sky_tex");
+	loc_light_count = glGetUniformLocation(
+					cycles.compute_program, "u_light_count");
 	loc_accumulation_tex_fs = glGetUniformLocation(
 		cycles.fullscreen_program, "u_accumulation_tex");
+	glfwShowWindow(cycles.win);
 	while (!glfwWindowShouldClose(cycles.win))
 	{
 		glfwPollEvents();
@@ -157,6 +156,7 @@ int	main(int argc, char *argv[])
 			loc_reset_samples,
 			loc_ambient_color,
 			loc_sky_tex,
+			loc_light_count,
 			loc_accumulation_tex_fs,
 			scene,
 			frame_index,

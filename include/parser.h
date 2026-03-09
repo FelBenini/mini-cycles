@@ -10,5 +10,7 @@ void	process_camera(t_scene *scene, char *line);
 void	process_cube(t_scene *scene, char *line);
 void	process_ambient(t_scene *scene, char *line);
 void	process_torus(t_scene *scene, char *line);
+void	process_obj(t_scene *scene, char *line);
+void	process_light(t_scene *scene, char *line);
 
 #endif

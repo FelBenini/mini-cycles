@@ -54,6 +54,10 @@ void	process_line(t_scene *scene, char *line)
 		process_ambient(scene, line);
 	if (strncmp(&line[i], "to", 2) == 0)
 		process_torus(scene, line);
+	if (strncmp(&line[i], "obj", 3) == 0)
+		process_obj(scene, line);
+	if (strncmp(&line[i], "L", 1) == 0)
+		process_light(scene, line);
 }
 
 t_scene	parse_scene(char *filename)

@@ -37,6 +37,22 @@ typedef struct s_mesh_descriptor
 	uint32_t			pad[3];
 }						t_mesh_descriptor;
 
+typedef struct s_light
+{
+	uint32_t type;
+	float    _pad0[3];
+
+	t_vec3   position;
+	float    _pad1;
+
+	t_vec3   direction;
+	float    _pad2;
+
+	t_vec3   color;
+	float    intensity;
+
+} t_light;
+
 typedef struct s_scene
 {
 	// CPU side
@@ -55,6 +71,9 @@ typedef struct s_scene
 	uint32_t			triangle_count;
 	t_camera			camera;
 	t_image_ssbo		*images;
+	t_light				*lights;
+	uint32_t			light_count;
+	uint32_t			light_capacity;
 
 	GLuint				ssbo_triangles;
 	GLuint				ssbo_normals;
@@ -62,6 +81,7 @@ typedef struct s_scene
 	GLuint				ssbo_bvh_nodes;
 	GLuint				ssbo_tlas_nodes;
 	GLuint				ssbo_materials;
+	GLuint				ssbo_lights;
 	int					gpu_dirty;
 	int					desc_dirty;
 	int					bvh_dirty;
@@ -95,5 +115,8 @@ void					scene_move_mesh(t_scene *scene, uint32_t index,
 int						scene_load_image(t_scene *scene, const char *path);
 void					scene_upload_images(t_scene *scene);
 void					scene_destroy_images(t_scene *scene);
+
+int						scene_add_light(t_scene *scene, t_light light);
+void					scene_upload_lights(t_scene *scene);
 
 #endif
