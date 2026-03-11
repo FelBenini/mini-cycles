@@ -19,6 +19,7 @@ t_scene	scene_create(uint32_t initial_capacity)
 	scene.light_count = 0;
 	glGenBuffers(1, &scene.ssbo_triangles);
 	glGenBuffers(1, &scene.ssbo_normals);
+	glGenBuffers(1, &scene.ssbo_texcoords);
 	glGenBuffers(1, &scene.ssbo_meshes);
 	glGenBuffers(1, &scene.ssbo_bvh_nodes);
 	glGenBuffers(1, &scene.ssbo_tlas_nodes);

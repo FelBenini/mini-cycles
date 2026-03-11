@@ -63,16 +63,19 @@ void	scene_upload_triangles(t_scene *scene)
 {
 	t_triangle_vertices	*verts;
 	t_triangle_normals	*norms;
+	t_triangle_texcoords	*texcoords;
 	uint32_t			i;
 
 	rebuild_flat_triangle_array(scene);
 	verts = malloc(sizeof(t_triangle_vertices) * scene->triangle_count);
 	norms = malloc(sizeof(t_triangle_normals) * scene->triangle_count);
-	if (!verts || !norms)
+	texcoords = malloc(sizeof(t_triangle_texcoords) * scene->triangle_count);
+	if (!verts || !norms || !texcoords)
 	{
-		fprintf(stderr, "scene: failed to allocate vertex/normal arrays\n");
+		fprintf(stderr, "scene: failed to allocate vertex/normal/texcoord arrays\n");
 		free(verts);
 		free(norms);
+		free(texcoords);
 		return ;
 	}
 	for (i = 0; i < scene->triangle_count; i++)
@@ -84,21 +87,33 @@ void	scene_upload_triangles(t_scene *scene)
 		norms[i].n0 = scene->triangles[i].n0;
 		norms[i].n1 = scene->triangles[i].n1;
 		norms[i].n2 = scene->triangles[i].n2;
+
+		texcoords[i].uv0 = scene->triangles[i].uv0;
+		texcoords[i].uv1 = scene->triangles[i].uv1;
+		texcoords[i].uv2 = scene->triangles[i].uv2;
 	}
 
-	// Upload vertices
+	// vertices
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_triangles);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_triangle_vertices) * scene->triangle_count,
 			verts, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRIANGLE_VERTS, scene->ssbo_triangles);
 
-	// Upload normals
+	// normals
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_normals);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_triangle_normals) * scene->triangle_count,
 			norms, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRIANGLE_NORMS, scene->ssbo_normals);
+
+	// texcoords
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, scene->ssbo_texcoords);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(t_triangle_texcoords) * scene->triangle_count,
+			texcoords, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TEXCOORDS_SSBOS, scene->ssbo_texcoords);
+
 	free(verts);
 	free(norms);
+	free(texcoords);
 	scene->gpu_dirty = 0;
 	scene_upload_descriptors(scene);
 	scene_upload_bvh_nodes(scene);

@@ -77,6 +77,7 @@ typedef struct s_scene
 
 	GLuint				ssbo_triangles;
 	GLuint				ssbo_normals;
+	GLuint				ssbo_texcoords;
 	GLuint				ssbo_meshes;
 	GLuint				ssbo_bvh_nodes;
 	GLuint				ssbo_tlas_nodes;

@@ -35,8 +35,12 @@ t_mesh	generate_cone(int stacks, int slices, float radius, float height)
 			t_vec4 n1 = { cosf(theta0) / len, slope / len, sinf(theta0) / len, 0.0f };
 			t_vec4 n2 = { cosf(theta1) / len, slope / len, sinf(theta1) / len, 0.0f };
 			t_vec4 n3 = { cosf(theta1) / len, slope / len, sinf(theta1) / len, 0.0f };
-			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2 };
-			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3 };
+			t_vec4 uv0 = { (float)j / slices, t0, 0.0f, 0.0f };
+			t_vec4 uv1 = { (float)j / slices, t1, 0.0f, 0.0f };
+			t_vec4 uv2 = { (float)(j + 1) / slices, t1, 0.0f, 0.0f };
+			t_vec4 uv3 = { (float)(j + 1) / slices, t0, 0.0f, 0.0f };
+			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2, uv0, uv1, uv2 };
+			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3, uv0, uv2, uv3 };
 		}
 	}
 	t_vec4 base_normal = { 0.0f, -1.0f, 0.0f, 0.0f };
@@ -47,7 +51,9 @@ t_mesh	generate_cone(int stacks, int slices, float radius, float height)
 		float theta1 = 2.0f * M_PI * ((float)(j + 1) / slices);
 		t_vec4 p0 = { radius * cosf(theta0), -factor, radius * sinf(theta0), 0.0f };
 		t_vec4 p1 = { radius * cosf(theta1), -factor, radius * sinf(theta1), 0.0f };
-		mesh.triangles[index++] = (t_triangle){ center, p1, p0, base_normal, base_normal, base_normal };
+		t_vec4 uv0 = { (float)j / slices, 0.0f, 0.0f, 0.0f };
+		t_vec4 uv1 = { (float)(j + 1) / slices, 0.0f, 0.0f, 0.0f };
+		mesh.triangles[index++] = (t_triangle){ center, p1, p0, base_normal, base_normal, base_normal, uv0, uv1, uv1 };
 	}
 	float bounding = sqrtf(radius * radius + height * height);
 	mesh.position.w = bounding;

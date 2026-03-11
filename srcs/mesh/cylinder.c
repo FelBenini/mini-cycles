@@ -28,8 +28,12 @@ t_mesh	generate_cylinder(int stacks, int slices, float radius, float height)
 			t_vec4 n1 = { cosf(theta0), 0.0f, sinf(theta0), 0.0f };
 			t_vec4 n2 = { cosf(theta1), 0.0f, sinf(theta1), 0.0f };
 			t_vec4 n3 = { cosf(theta1), 0.0f, sinf(theta1), 0.0f };
-			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2 };
-			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3 };
+			t_vec4 uv0 = { (float)j / slices, (float)i / stacks, 0.0f, 0.0f };
+			t_vec4 uv1 = { (float)j / slices, (float)(i + 1) / stacks, 0.0f, 0.0f };
+			t_vec4 uv2 = { (float)(j + 1) / slices, (float)(i + 1) / stacks, 0.0f, 0.0f };
+			t_vec4 uv3 = { (float)(j + 1) / slices, (float)i / stacks, 0.0f, 0.0f };
+			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2, uv0, uv1, uv2 };
+			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3, uv0, uv2, uv3 };
 		}
 	}
 	t_vec4 top_normal    = { 0.0f,  1.0f, 0.0f, 0.0f };
@@ -44,8 +48,12 @@ t_mesh	generate_cylinder(int stacks, int slices, float radius, float height)
 		t_vec4 t1 = { radius * cosf(theta1),  height / 2.0f, radius * sinf(theta1), 0.0f };
 		t_vec4 b0 = { radius * cosf(theta0), -height / 2.0f, radius * sinf(theta0), 0.0f };
 		t_vec4 b1 = { radius * cosf(theta1), -height / 2.0f, radius * sinf(theta1), 0.0f };
-		mesh.triangles[index++] = (t_triangle){ top_center, t0, t1, top_normal,    top_normal,    top_normal    };
-		mesh.triangles[index++] = (t_triangle){ bot_center, b1, b0, bottom_normal, bottom_normal, bottom_normal };
+		t_vec4 uv_t0 = { (float)j / slices, 0.0f, 0.0f, 0.0f };
+		t_vec4 uv_t1 = { (float)(j + 1) / slices, 0.0f, 0.0f, 0.0f };
+		t_vec4 uv_b0 = { (float)j / slices, 1.0f, 0.0f, 0.0f };
+		t_vec4 uv_b1 = { (float)(j + 1) / slices, 1.0f, 0.0f, 0.0f };
+		mesh.triangles[index++] = (t_triangle){ top_center, t0, t1, top_normal,    top_normal,    top_normal,    uv_t0, uv_t0, uv_t1 };
+		mesh.triangles[index++] = (t_triangle){ bot_center, b1, b0, bottom_normal, bottom_normal, bottom_normal, uv_b1, uv_b0, uv_b0 };
 	}
 	return (mesh);
 }

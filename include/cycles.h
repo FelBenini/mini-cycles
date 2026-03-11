@@ -12,6 +12,7 @@
 # define MATERIALS_SSBOS 6
 # define IMAGES_SSBOS 7
 # define PIXELS_SSBOS 8
+# define TEXCOORDS_SSBOS 9
 
 typedef struct s_cycles
 {

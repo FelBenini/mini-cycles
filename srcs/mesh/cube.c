@@ -28,8 +28,12 @@ t_mesh	generate_cube(float size)
 		t_vec4 p2 = {faces[i][2][0], faces[i][2][1], faces[i][2][2], 0.0f};
 		t_vec4 p3 = {faces[i][3][0], faces[i][3][1], faces[i][3][2], 0.0f};
 		t_vec4 n  = {faces[i][4][0], faces[i][4][1], faces[i][4][2], 0.0f};
-		mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n, n, n };
-		mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n, n, n };
+		t_vec4 uv0 = {0.0f, 0.0f, 0.0f, 0.0f};
+		t_vec4 uv1 = {1.0f, 0.0f, 0.0f, 0.0f};
+		t_vec4 uv2 = {1.0f, 1.0f, 0.0f, 0.0f};
+		t_vec4 uv3 = {0.0f, 1.0f, 0.0f, 0.0f};
+		mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n, n, n, uv0, uv1, uv2 };
+		mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n, n, n, uv0, uv2, uv3 };
 	}
 	return (mesh);
 }

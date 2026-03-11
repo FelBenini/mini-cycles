@@ -37,6 +37,12 @@ struct s_triangle_normals {
     vec4 n2;
 };
 
+struct s_triangle_texcoords {
+    vec4 uv0;
+    vec4 uv1;
+    vec4 uv2;
+};
+
 struct s_mesh_descriptor {
     vec4  position;
     vec4  direction;
@@ -73,6 +79,10 @@ struct s_material {
     float metallic;
     float ior;
     uint  type;
+	int   texture_idx;
+	int   texture_displacement_idx;
+	int   roughness_tex_idx;
+	float pad;
 };
 
 struct s_hit {
@@ -81,6 +91,7 @@ struct s_hit {
     vec3  normal;
     vec3  geo_normal;
     uint  mesh_index;
+    vec2  uv;
 };
 
 struct s_image_meta {
@@ -108,6 +119,7 @@ struct s_light
 
 layout(std430, binding = 1) readonly buffer Triangles        { s_triangle          triangles[];        };
 layout(std430, binding = 2) readonly buffer TriangleNormals  { s_triangle_normals  triangle_normals[]; };
+layout(std430, binding = 9) readonly buffer TriangleTexcoords { s_triangle_texcoords triangle_texcoords[]; };
 layout(std430, binding = 3) readonly buffer Meshes           { s_mesh_descriptor   meshes[];           };
 layout(std430, binding = 4) readonly buffer BVHNodes         { s_bvh_node          bvh_nodes[];        };
 layout(std430, binding = 5) readonly buffer TLASNodes        { s_tlas_node         tlas_nodes[];       };

@@ -12,6 +12,10 @@ typedef struct s_triangle
 	t_vec4		n0;
 	t_vec4		n1;
 	t_vec4		n2;
+
+	t_vec4		uv0;
+	t_vec4		uv1;
+	t_vec4		uv2;
 }	t_triangle;
 
 typedef struct s_triangle_vertices
@@ -27,5 +31,12 @@ typedef struct s_triangle_normals
 	t_vec4		n1;
 	t_vec4		n2;
 }	t_triangle_normals;
+
+typedef struct s_triangle_texcoords
+{
+	t_vec4		uv0;
+	t_vec4		uv1;
+	t_vec4		uv2;
+}	t_triangle_texcoords;
 
 #endif

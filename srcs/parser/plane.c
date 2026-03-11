@@ -41,6 +41,8 @@ void	process_plane(t_scene *scene, char *line)
 	material.albedo    = vec4_create(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
 	material.roughness = roughness;
 	material.metallic  = 0.0f;
+	material.texture_idx = -1;
+	material.displacement_tex_idx = 2;
 	material.emission  = emission;
 	material.ior       = 0;
 	material_idx = scene_add_material(scene, material);

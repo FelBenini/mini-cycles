@@ -41,6 +41,12 @@ void blas_intersect(s_ray ray, uint mesh_idx, inout s_hit hit)
                     }
                     else
                         hit.normal = geo_n;
+
+                    vec2 uv_interp =
+                        bary.x * triangle_texcoords[tri_idx].uv0.xy +
+                        bary.y * triangle_texcoords[tri_idx].uv1.xy +
+                        bary.z * triangle_texcoords[tri_idx].uv2.xy;
+                    hit.uv = uv_interp;
                 }
             }
             continue;

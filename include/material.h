@@ -13,6 +13,10 @@ typedef struct s_material
 	float		metallic;
 	float		ior; // index of refraction
 	uint32_t	type;
+	int			texture_idx;
+	int			displacement_tex_idx;
+	int			roughness_tex_idx;
+	float		pad;
 }	t_material;
 
 #endif

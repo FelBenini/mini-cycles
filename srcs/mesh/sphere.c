@@ -54,8 +54,12 @@ t_mesh	generate_uv_sphere(int stacks, int slices, float radius)
             t_vec4 n1 = { p1.x / radius, p1.y / radius, p1.z / radius, 0.0f };
             t_vec4 n2 = { p2.x / radius, p2.y / radius, p2.z / radius, 0.0f };
             t_vec4 n3 = { p3.x / radius, p3.y / radius, p3.z / radius, 0.0f };
-			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2 };
-			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3 };
+			t_vec4 uv0 = { (float)j / slices, (float)i / stacks, 0.0f, 0.0f };
+			t_vec4 uv1 = { (float)j / slices, (float)(i + 1) / stacks, 0.0f, 0.0f };
+			t_vec4 uv2 = { (float)(j + 1) / slices, (float)(i + 1) / stacks, 0.0f, 0.0f };
+			t_vec4 uv3 = { (float)(j + 1) / slices, (float)i / stacks, 0.0f, 0.0f };
+			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2, uv0, uv1, uv2 };
+			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3, uv0, uv2, uv3 };
 		}
 	}
 	return (mesh);

@@ -2,8 +2,6 @@
 #include "camera.h"
 #include "cycles.h"
 #include "input.h"
-#include "material.h"
-#include "mesh.h"
 #include "parser.h"
 #include "rt_math.h"
 #include "scene.h"
@@ -98,6 +96,9 @@ int	main(int argc, char *argv[])
 	cycles = init_cycles();
 	scene = parse_scene(argv[1]);
 
+	scene_load_image(&scene, "assets/rocks.jpg");
+	scene_load_image(&scene, "assets/disp_rocks.jpg");
+	scene_load_image(&scene, "assets/rough_rocks.jpg");
 	scene_upload_images(&scene);
 	scene_upload_lights(&scene);
 	scene_upload_triangles(&scene);

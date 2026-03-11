@@ -44,6 +44,8 @@ void	process_torus(t_scene *scene, char *line)
 	material.albedo    = vec4_create(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
 	material.roughness = roughness;
 	material.metallic  = metallic;
+	material.texture_idx = -1;
+	material.displacement_tex_idx = -1;
 	emission.x /= 255.0f;
 	emission.y /= 255.0f;
 	emission.z /= 255.0f;

@@ -40,6 +40,8 @@ void	process_obj(t_scene *scene, char *line)
 	material.emission = (t_vec4){er / 255, eg / 255, eb / 255, 0.0f};
 	material.roughness = roughness;
 	material.metallic = metallic;
+	material.texture_idx = -1;
+	material.displacement_tex_idx = -1;
 	obj = load_mesh_from_obj(path, 1.0f);
 	obj.position = pos;
 	obj.direction = dir;

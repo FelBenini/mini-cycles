@@ -58,8 +58,12 @@ t_mesh	generate_torus(int stacks, int slices, float major_radius, float minor_ra
 			t_vec4 n1 = { (p1.x - c1.x) / minor_radius, p1.y / minor_radius, (p1.z - c1.z) / minor_radius, 0.0f };
 			t_vec4 n2 = { (p2.x - c1.x) / minor_radius, p2.y / minor_radius, (p2.z - c1.z) / minor_radius, 0.0f };
 			t_vec4 n3 = { (p3.x - c0.x) / minor_radius, p3.y / minor_radius, (p3.z - c0.z) / minor_radius, 0.0f };
-			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2 };
-			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3 };
+			t_vec4 uv0 = { (float)j / slices, (float)i / stacks, 0.0f, 0.0f };
+			t_vec4 uv1 = { (float)j / slices, (float)(i + 1) / stacks, 0.0f, 0.0f };
+			t_vec4 uv2 = { (float)(j + 1) / slices, (float)(i + 1) / stacks, 0.0f, 0.0f };
+			t_vec4 uv3 = { (float)(j + 1) / slices, (float)i / stacks, 0.0f, 0.0f };
+			mesh.triangles[index++] = (t_triangle){ p0, p1, p2, n0, n1, n2, uv0, uv1, uv2 };
+			mesh.triangles[index++] = (t_triangle){ p0, p2, p3, n0, n2, n3, uv0, uv2, uv3 };
 		}
 	}
 	return (mesh);

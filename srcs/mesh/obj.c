@@ -9,9 +9,11 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 	char	line[256];
 	int		vert_count;
 	int		norm_count;
+	int		uv_count;
 	int		face_count;
 	t_vec4	*verts;
 	t_vec4	*norms;
+	t_vec4	*uvs;
 	int		index;
 
 	file = fopen(filepath, "r");
@@ -22,9 +24,10 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 		return (mesh);
 	}
 
-	// First pass: count vertices, normals, and total triangles after fan-triangulation
+	// First pass: count vertices, normals, uvs, and total triangles after fan-triangulation
 	vert_count = 0;
 	norm_count = 0;
+	uv_count = 0;
 	face_count = 0;
 	while (fgets(line, sizeof(line), file))
 	{
@@ -32,6 +35,8 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 			vert_count++;
 		else if (line[0] == 'v' && line[1] == 'n')
 			norm_count++;
+		else if (line[0] == 'v' && line[1] == 't')
+			uv_count++;
 		else if (line[0] == 'f' && line[1] == ' ')
 		{
 			int		verts_in_face = 0;
@@ -53,6 +58,7 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 
 	verts = malloc(sizeof(t_vec4) * vert_count);
 	norms = malloc(sizeof(t_vec4) * norm_count);
+	uvs = malloc(sizeof(t_vec4) * uv_count);
 
 	mesh.triangle_count = face_count;
 	mesh.triangles = malloc(sizeof(t_triangle) * mesh.triangle_count);
@@ -62,7 +68,7 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 
 	// Second pass: parse data
 	rewind(file);
-	int vi = 0, ni = 0;
+	int vi = 0, ni = 0, ui = 0;
 	index = 0;
 	while (fgets(line, sizeof(line), file))
 	{
@@ -78,10 +84,17 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 			sscanf(line + 3, "%f %f %f", &x, &y, &z);
 			norms[ni++] = (t_vec4){x, y, z, 0.0f};
 		}
+		else if (line[0] == 'v' && line[1] == 't')
+		{
+			float u, v;
+			sscanf(line + 3, "%f %f", &u, &v);
+			uvs[ui++] = (t_vec4){u, v, 0.0f, 0.0f};
+		}
 		else if (line[0] == 'f' && line[1] == ' ')
 		{
 			int		face_v[64];
 			int		face_vn[64];
+			int		face_vt[64];
 			int		face_vert_count = 0;
 			char	*ptr = line + 2;
 			while (*ptr && face_vert_count < 64)
@@ -89,13 +102,13 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 				while (*ptr == ' ' || *ptr == '\t') ptr++;
 				if (!*ptr || *ptr == '\n' || *ptr == '\r') break;
 
-				int v = 0, vn = 0;
+				int v = 0, vn = 0, vt = 0;
 				int matched = 0;
-				if (sscanf(ptr, "%d//%d", &v, &vn) == 2)
+				if (sscanf(ptr, "%d/%d/%d", &v, &vt, &vn) == 3)
 					matched = 1;
-				else if (sscanf(ptr, "%d/%*d/%d", &v, &vn) == 2)
+				else if (sscanf(ptr, "%d//%d", &v, &vn) == 2)
 					matched = 1;
-				else if (sscanf(ptr, "%d/%*d", &v) == 1)
+				else if (sscanf(ptr, "%d/%d", &v, &vt) == 2)
 					matched = 1;
 				else if (sscanf(ptr, "%d", &v) == 1)
 					matched = 1;
@@ -103,6 +116,7 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 					break;
 				face_v[face_vert_count] = v;
 				face_vn[face_vert_count] = vn;
+				face_vt[face_vert_count] = vt;
 				face_vert_count++;
 				while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '\n') ptr++;
 			}
@@ -111,7 +125,7 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 			for (int f = 1; f + 1 < face_vert_count; f++)
 			{
 				int idx[3] = { 0, f, f + 1 };
-				t_vec4 p[3], n[3];
+				t_vec4 p[3], n[3], uv[3];
 
 				for (int k = 0; k < 3; k++)
 					p[k] = verts[face_v[idx[k]] - 1];
@@ -136,7 +150,17 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 					n[0] = n[1] = n[2] = fn;
 				}
 
-				mesh.triangles[index++] = (t_triangle){p[0], p[1], p[2], n[0], n[1], n[2]};
+				if (uv_count > 0 && face_vt[0] > 0)
+				{
+					for (int k = 0; k < 3; k++)
+						uv[k] = uvs[face_vt[idx[k]] - 1];
+				}
+				else
+				{
+					uv[0] = uv[1] = uv[2] = (t_vec4){0.0f, 0.0f, 0.0f, 0.0f};
+				}
+
+				mesh.triangles[index++] = (t_triangle){p[0], p[1], p[2], n[0], n[1], n[2], uv[0], uv[1], uv[2]};
 			}
 		}
 	}
@@ -144,5 +168,6 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 	fclose(file);
 	free(verts);
 	free(norms);
+	free(uvs);
 	return (mesh);
 }
