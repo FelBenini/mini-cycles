@@ -93,7 +93,7 @@ void trace_textures(
     if (mat.roughness_tex_idx != -1)
     {
         vec4 rough_tex = sample_image(uint(mat.roughness_tex_idx), uv);
-        rough = mat.roughness + rough_tex.r * (1.0 - mat.roughness);
+        rough = rough_tex.r;
     }
 }
 
@@ -101,7 +101,7 @@ vec3 trace_path(s_ray ray, inout uint seed)
 {
     vec3 throughput = vec3(1.0);
     vec3 radiance   = vec3(0.0);
-    const int MAX_BOUNCES = 4;
+    const int MAX_BOUNCES = 8;
 
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
     {
@@ -145,9 +145,10 @@ vec3 trace_path(s_ray ray, inout uint seed)
         ray.dir     = new_dir;
         ray.inv_dir = 1.0 / new_dir;
 
-        vec3 specular_color = mix(vec3(1.0), albedo, mat.metallic);
+        vec3 F0 = mix(vec3(0.04), albedo, mat.metallic);
         vec3 diffuse_color  = albedo * (1.0 - mat.metallic);
-        throughput *= mix(specular_color, diffuse_color, rough);
+
+        throughput *= F0 + diffuse_color;
 
         if (max(throughput.r, max(throughput.g, throughput.b)) < 0.001)
             break;

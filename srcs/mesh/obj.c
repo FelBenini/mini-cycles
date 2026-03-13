@@ -45,10 +45,13 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 			while (*ptr)
 			{
 				while (*ptr == ' ' || *ptr == '\t') ptr++;
-				if (!*ptr || *ptr == '\n' || *ptr == '\r') break;
+				if (!*ptr || *ptr == '\n' || *ptr == '\r')
+					break;
 				prev = ptr;
-				while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '\n') ptr++;
-				if (ptr == prev) break; // no progress, bail
+				while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '\n')
+					ptr++;
+				if (ptr == prev)
+					break; // no progress, bail
 				verts_in_face++;
 			}
 			if (verts_in_face >= 3)
@@ -118,7 +121,8 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 				face_vn[face_vert_count] = vn;
 				face_vt[face_vert_count] = vt;
 				face_vert_count++;
-				while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '\n') ptr++;
+				while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '\n')
+					ptr++;
 			}
 
 			// Fan-triangulate: anchor at face_v[0], emit (n-2) triangles
@@ -128,12 +132,22 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 				t_vec4 p[3], n[3], uv[3];
 
 				for (int k = 0; k < 3; k++)
+				{
 					p[k] = verts[face_v[idx[k]] - 1];
+					p[k].x *= radius;
+					p[k].y *= radius;
+					p[k].z *= radius;
+				}
 
 				if (norm_count > 0 && face_vn[0] > 0)
 				{
 					for (int k = 0; k < 3; k++)
+					{
 						n[k] = norms[face_vn[idx[k]] - 1];
+						n[k].x *= radius;
+						n[k].y *= radius;
+						n[k].z *= radius;
+					}
 				}
 				else
 				{
@@ -164,7 +178,6 @@ t_mesh	load_mesh_from_obj(const char *filepath, float radius)
 			}
 		}
 	}
-
 	fclose(file);
 	free(verts);
 	free(norms);
