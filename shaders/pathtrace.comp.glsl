@@ -5,7 +5,6 @@ vec3 sample_lights(vec3 pos, vec3 normal, float bias)
     for (uint i = 0u; i < u_light_count; i++)
     {
         s_light light = lights[i];
-
         if (light.type == LIGHT_SUN)
         {
             vec3 L = normalize(light.direction.xyz);

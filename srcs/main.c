@@ -28,13 +28,6 @@ static void	render_frame(
 {
 	glUseProgram(cycles.compute_program);
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, scene.ssbo_triangles);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, scene.ssbo_normals);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, scene.ssbo_meshes);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, scene.ssbo_bvh_nodes);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, scene.ssbo_tlas_nodes);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, scene.ssbo_materials);
-
 	glUniform4f(loc_ambient_color, scene.ambient.x, scene.ambient.y, scene.ambient.z, scene.ambient.w);
 
 	glBindImageTexture(0, cycles.tex, 0, GL_FALSE, 0,
@@ -96,16 +89,13 @@ int	main(int argc, char *argv[])
 	cycles = init_cycles();
 	scene = parse_scene(argv[1]);
 
-	scene_load_image(&scene, "assets/rocks.jpg");
-	scene_load_image(&scene, "assets/disp_rocks.jpg");
-	scene_load_image(&scene, "assets/rough_rocks.jpg");
 	scene_upload_images(&scene);
-	scene_upload_lights(&scene);
 	scene_upload_triangles(&scene);
 	scene_upload_materials(&scene);
 	scene_upload_bvh_nodes(&scene);
 	scene_rebuild_tlas(&scene);
 	scene_upload_tlas_nodes(&scene);
+	scene_upload_lights(&scene);
 	register_callbacks(cycles, &scene.camera);
 	cam_u = get_cam_uniform_locations(cycles.compute_program);
 	loc_resolution = glGetUniformLocation(

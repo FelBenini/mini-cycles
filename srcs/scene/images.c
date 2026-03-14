@@ -107,7 +107,7 @@ void	scene_upload_images(t_scene *scene)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, iss->ssbo);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)meta_buf_size, meta_buf,
 		GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, iss->ssbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, IMAGES_SSBOS, iss->ssbo);
 	free(meta_buf);
 	pixel_buf_size = total_pixels * 4;
 	pixel_buf = malloc(pixel_buf_size);
@@ -129,7 +129,7 @@ void	scene_upload_images(t_scene *scene)
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, iss->ssbo_pixels);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)pixel_buf_size,
 		pixel_buf, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, iss->ssbo_pixels);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PIXELS_SSBOS, iss->ssbo_pixels);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	free(pixel_buf);
 	for (int i = 0; i < s_cache_count; i++)

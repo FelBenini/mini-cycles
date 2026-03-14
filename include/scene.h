@@ -39,17 +39,14 @@ typedef struct s_mesh_descriptor
 
 typedef struct s_light
 {
-	uint32_t type;
-	float    _pad0[3];
-
 	t_vec3   position;
-	float    _pad1;
-
+	float    pad0;
 	t_vec3   direction;
-	float    _pad2;
-
+	float    pad1;
 	t_vec3   color;
 	float    intensity;
+	uint32_t type;
+	float    pad[3];
 
 } t_light;
 

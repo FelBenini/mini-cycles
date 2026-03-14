@@ -107,32 +107,34 @@ struct s_image_meta {
 
 struct s_light
 {
-    uint type;
-
-    vec3 position;
-    vec3 direction;
-    vec3 color;
-
+    vec3  position;
+    float pad0;
+    vec3  direction;
+    float pad1;
+    vec3  color;
     float intensity;
+    uint  type;
+    float pad[3];
 };
+
 // SSBOs
 
 layout(std430, binding = 1) readonly buffer Triangles        { s_triangle          triangles[];        };
 layout(std430, binding = 2) readonly buffer TriangleNormals  { s_triangle_normals  triangle_normals[]; };
-layout(std430, binding = 9) readonly buffer TriangleTexcoords { s_triangle_texcoords triangle_texcoords[]; };
-layout(std430, binding = 3) readonly buffer Meshes           { s_mesh_descriptor   meshes[];           };
-layout(std430, binding = 4) readonly buffer BVHNodes         { s_bvh_node          bvh_nodes[];        };
-layout(std430, binding = 5) readonly buffer TLASNodes        { s_tlas_node         tlas_nodes[];       };
-layout(std430, binding = 6) readonly buffer Materials        { s_material          materials[];        };
-layout(std430, binding = 7) readonly buffer ImageMeta {
+layout(std430, binding = 3) readonly buffer TriangleTexcoords { s_triangle_texcoords triangle_texcoords[]; };
+layout(std430, binding = 4) readonly buffer Meshes           { s_mesh_descriptor   meshes[];           };
+layout(std430, binding = 5) readonly buffer BVHNodes         { s_bvh_node          bvh_nodes[];        };
+layout(std430, binding = 6) readonly buffer TLASNodes        { s_tlas_node         tlas_nodes[];       };
+layout(std430, binding = 7) readonly buffer Materials        { s_material          materials[];        };
+layout(std430, binding = 8) readonly buffer LightBuffer
+{
+    s_light lights[];
+};
+layout(std430, binding = 9) readonly buffer ImageMeta {
     uint          img_count;
 	uint          _pad[3];
     s_image_meta  img_info[];
 };
-layout(std430, binding = 8) readonly buffer ImagePixels {
+layout(std430, binding = 10) readonly buffer ImagePixels {
     uint pixels[];
-};
-layout(std430, binding = 9) readonly buffer LightBuffer
-{
-    s_light lights[];
 };

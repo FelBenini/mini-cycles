@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include <string.h>
+#include "cycles.h"
 #include "scene.h"
 
 int	scene_add_light(t_scene *scene, t_light light)
@@ -41,5 +41,5 @@ void	scene_upload_lights(t_scene *scene)
 		scene->lights,
 		GL_DYNAMIC_DRAW
 	);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, scene->ssbo_lights);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, LIGHT_SSBOS, scene->ssbo_lights);
 }
