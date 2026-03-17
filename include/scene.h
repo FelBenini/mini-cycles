@@ -46,7 +46,9 @@ typedef struct s_light
 	t_vec3   color;
 	float    intensity;
 	uint32_t type;
-	float    pad[3];
+	float    cos_inner;
+	float    cos_outer;
+	float    pad;
 
 } t_light;
 

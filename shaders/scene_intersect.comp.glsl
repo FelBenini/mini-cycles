@@ -3,7 +3,7 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
     hit.t  = 1e30;
     bool found = false;
 
-    uint stack[32]; // ← was 96, BVH depth never exceeds 32
+    uint stack[32];
     uint ptr = 0;
     stack[ptr++] = 0;
 
@@ -37,7 +37,7 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
             {
                 hit.normal     = normalize(R * hit.normal);
                 hit.geo_normal = normalize(R * hit.geo_normal);
-                hit.mesh_index = mesh_idx; // make sure this is set
+                hit.mesh_index = mesh_idx;
                 found = true;
             }
             continue;
@@ -78,7 +78,7 @@ bool scene_intersect(s_ray ray_world, out s_hit hit)
 
 bool scene_intersect_shadow(s_ray ray_world, float max_t)
 {
-    uint stack[32]; // ← was 96
+    uint stack[32];
     uint ptr = 0;
     stack[ptr++] = 0;
 
@@ -102,7 +102,7 @@ bool scene_intersect_shadow(s_ray ray_world, float max_t)
             ray.dir     = R_inv * ray_world.dir;
             ray.inv_dir = 1.0 / ray.dir;
 
-            uint bstack[32]; // ← was 96
+            uint bstack[32];
             uint bptr = 0;
             bstack[bptr++] = meshes[mesh_idx].bvh_root;
 
@@ -131,7 +131,6 @@ bool scene_intersect_shadow(s_ray ray_world, float max_t)
                     bvh_nodes[bnode.right_child].bbox_min.xyz,
                     bvh_nodes[bnode.right_child].bbox_max.xyz, max_t, tr);
 
-                // ← Ordered traversal for shadow rays too
                 if (hl && hr) {
                     if (tl < tr) {
                         bstack[bptr++] = bnode.right_child;
@@ -147,7 +146,6 @@ bool scene_intersect_shadow(s_ray ray_world, float max_t)
             continue;
         }
 
-        // ← Ordered TLAS traversal for shadow rays
         float tl, tr;
         bool hl = (node.left_child  != 0) && intersect_aabb(ray_world,
             tlas_nodes[node.left_child].bbox_min.xyz,

@@ -117,7 +117,9 @@ struct s_light
     vec3  color;
     float intensity;
     uint  type;
-    float pad[3];
+    float cos_inner;
+    float cos_outer;
+    float pad;
 };
 
 // SSBOs
