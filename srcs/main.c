@@ -22,6 +22,7 @@ static void	render_frame(
 	GLint loc_sky_intensity,
 	GLint loc_light_count,
 	GLint loc_accumulation_tex_fs,
+	GLint loc_tonemap_fs,
 	t_scene scene,
 	uint32_t frame_index,
 	uint32_t reset_samples)
@@ -50,7 +51,8 @@ static void	render_frame(
 	glUseProgram(cycles.fullscreen_program);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, cycles.tex);
-	glUniform1i(loc_accumulation_tex_fs, 0);
+	glUniform1ui(loc_accumulation_tex_fs, 0);
+	glUniform1ui(loc_tonemap_fs, cycles.tonemap);
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
@@ -75,6 +77,7 @@ int	main(int argc, char *argv[])
 	GLint	loc_frame_index;
 	GLint	loc_reset_samples;
 	GLint	loc_accumulation_tex_fs;
+	GLint	loc_tonemap_fs;
 	GLint	loc_ambient_color;
 	GLint	loc_sky_tex;
 	GLint	loc_sky_intensity;
@@ -83,12 +86,13 @@ int	main(int argc, char *argv[])
 	uint32_t frame_index = 0;
 	uint32_t reset_samples = 1;
 
-	if (argc != 2)
+	if (argc < 2)
 	{
 		printf("Please, pass a file as an argument.\n");
 		return (1);
 	}
 	cycles = init_cycles();
+	parse_cycles_args(&cycles, argv, argc);
 	scene = parse_scene(argv[1]);
 
 	scene_upload_images(&scene);
@@ -118,6 +122,8 @@ int	main(int argc, char *argv[])
 					cycles.compute_program, "u_light_count");
 	loc_accumulation_tex_fs = glGetUniformLocation(
 		cycles.fullscreen_program, "u_accumulation_tex");
+	loc_tonemap_fs = glGetUniformLocation(
+			cycles.fullscreen_program, "u_tonemap");
 	glfwShowWindow(cycles.win);
 	while (!glfwWindowShouldClose(cycles.win))
 	{
@@ -154,6 +160,7 @@ int	main(int argc, char *argv[])
 			loc_sky_intensity,
 			loc_light_count,
 			loc_accumulation_tex_fs,
+			loc_tonemap_fs,
 			scene,
 			frame_index,
 			reset_samples);

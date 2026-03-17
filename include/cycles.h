@@ -15,15 +15,20 @@
 # define IMAGES_SSBOS 9
 # define PIXELS_SSBOS 10
 
+# define NO_TONEMAP 0
+# define AGX_TONEMAP 1
+
 typedef struct s_cycles
 {
-	GLFWwindow	*win;
-	GLuint		compute_program;
-	GLuint		fullscreen_program;
-	GLuint		tex;
-	GLuint		vao;
+	GLFWwindow		*win;
+	GLuint			compute_program;
+	GLuint			fullscreen_program;
+	GLuint			tex;
+	GLuint			vao;
+	unsigned int	tonemap;
 }	t_cycles;
 
 t_cycles	init_cycles(void);
+void		parse_cycles_args(t_cycles *cycles, char **args, int argv);
 
 #endif

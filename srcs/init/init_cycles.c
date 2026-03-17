@@ -1,8 +1,10 @@
+#include <stddef.h>
 #include <stdlib.h>
 #include "shader.h"
 #include "cycles.h"
 #include <GLFW/glfw3.h>
 #include <stdio.h>
+#include <string.h>
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -30,6 +32,22 @@ static GLuint	gen_vao(void)
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 	return (vao);
+}
+
+void	parse_cycles_args(t_cycles *cycles, char **args, int argv)
+{
+	int	i;
+
+	i = 2;
+	while (i < argv)
+	{
+		if (strncmp(args[i], "--tonemap=", 10) == 0)
+		{
+			if (strncmp(args[i] + 10, "agx\0", 4) == 0)
+				cycles->tonemap = AGX_TONEMAP;
+		}
+		i++;
+	}
 }
 
 t_cycles	init_cycles(void)
@@ -64,5 +82,6 @@ t_cycles	init_cycles(void)
 			"shaders/fullscreen.frag.glsl");
 	cycles.tex = gen_tex();
 	cycles.vao = gen_vao();
+	cycles.tonemap = NO_TONEMAP;
 	return (cycles);
 }
