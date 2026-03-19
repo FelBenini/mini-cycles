@@ -23,7 +23,18 @@ make
 
 ### Tonemapping
 
-Currently the AGX tonemapping is done at the fragment shader, by simulating the look and feel of it. Actual LUT for color grading is on the plans.
+Currently the AGX tonemapping is procedurally done at the fragment shader, but you can also pass LUTs in the .cube format for better color controling. Some example .cube files are located at ´assets/lut´
 
+##### ./scenes/suzanne.rt
 <img width="1958" height="769" alt="AGX_comparison" src="https://github.com/user-attachments/assets/370f61a8-69ed-4afc-856b-36e0fe50fb0d" />
-<img width="1332" height="1118" alt="New Project" src="https://github.com/user-attachments/assets/8f6a7fa4-1e13-4f0c-a0d0-ac4b873ad93d" />
+
+##### ./scenes/shapes.rt
+<img width="1332" height="1740" alt="tonemap comparison" src="https://github.com/user-attachments/assets/d8cf6bbe-b54b-46e7-8f41-c2eab43eee84" />
+
+
+To tonemap the rendered scene, you can pass the LUT information by command line, like the examples below.
+```bash
+./cycles ./path/to/scene --tonemap=cube --lut=./path/to/cube-lut # Custom LUT in .cube format
+./cycles ./path/to/scene --tonemap=agx # AGX tonemapping
+./cycles ./path/to/scene # No tonemapping
+```
