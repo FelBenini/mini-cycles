@@ -94,13 +94,17 @@ vec3 trace_path(s_ray ray, inout uint seed)
 
         trace_textures(mat, N, hit, albedo, rough);
 
-        radiance += throughput * emission;
+        // Only count emission on camera ray (bounce 0) to avoid
+        // double-counting with NEE on subsequent bounces.
+        if (bounce == 0 || u_emissive_mesh_count == 0u)
+            radiance += throughput * emission;
         if (length(emission) > 0.0) break;
 
         float adaptive_bias = max(1e-4, hit.t * 1e-4);
 
         direct = sample_lights(hit.pos, N, adaptive_bias);
-        radiance += throughput * albedo * direct;
+        vec3 nee = sample_emissive_mesh(hit.pos, N, adaptive_bias, seed);
+        radiance += throughput * albedo * (direct + nee);
 
         rough = clamp(rough, 0.001, 1.0);
         vec3  diffuse_dir = sample_hemisphere(N, seed);

@@ -15,6 +15,7 @@
 # define LIGHT_SSBOS 8
 # define IMAGES_SSBOS 9
 # define PIXELS_SSBOS 10
+# define EMISSIVE_SSBOS 11
 
 # define NO_TONEMAP 0
 # define AGX_TONEMAP 1

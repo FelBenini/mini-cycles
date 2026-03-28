@@ -18,6 +18,8 @@ t_scene	scene_create(uint32_t initial_capacity)
 	scene.bvhs = malloc(sizeof(t_bvh) * scene.mesh_capacity);
 	scene.light_capacity = 0;
 	scene.light_count = 0;
+	scene.emissive_mesh_indices = NULL;
+	scene.emissive_mesh_count = 0;
 	glGenBuffers(1, &scene.ssbo_triangles);
 	glGenBuffers(1, &scene.ssbo_normals);
 	glGenBuffers(1, &scene.ssbo_texcoords);
