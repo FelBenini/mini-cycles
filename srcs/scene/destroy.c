@@ -24,5 +24,6 @@ void	scene_destroy(t_scene *scene)
 	glDeleteBuffers(1, &scene->ssbo_bvh_nodes);
 	glDeleteBuffers(1, &scene->ssbo_tlas_nodes);
 	glDeleteBuffers(1, &scene->ssbo_materials);
+	glDeleteBuffers(1, &scene->ssbo_emissive_meshes);
 	memset(scene, 0, sizeof(*scene));
 }
