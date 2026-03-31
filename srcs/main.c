@@ -1,14 +1,12 @@
 #include "camera.h"
 #include "cycles.h"
 #include "input.h"
-#include "lut.h"
 #include "parser.h"
 #include "rt_math.h"
 #include "scene.h"
 #include <GLFW/glfw3.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 
 #define WIDTH 1920
 #define HEIGHT 1080

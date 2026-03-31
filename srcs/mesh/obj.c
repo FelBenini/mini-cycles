@@ -70,7 +70,13 @@ int	allocate_mesh_buffers(
 	mesh->triangles = malloc(sizeof(t_triangle) * counts.face_count);
 
 	if (!tmp->verts || !tmp->norms || !tmp->uvs || !mesh->triangles)
+	{
+		free(tmp->verts);
+		free(tmp->norms);
+		free(tmp->uvs);
+		free(mesh->triangles);
 		return (0);
+	}
 
 	mesh->triangle_count = counts.face_count;
 	mesh->position = (t_vec4){0.0f, 0.0f, 0.0f, radius};
@@ -189,9 +195,7 @@ static void	triangulate_face(
 				uv[k] = tmp->uvs[face_vt[idx[k]] - 1];
 		}
 		else
-		{
 			uv[0] = uv[1] = uv[2] = (t_vec4){0.0f, 0.0f, 0.0f, 0.0f};
-		}
 
 		mesh->triangles[(*index)++] = (t_triangle){p[0], p[1], p[2], n[0], n[1], n[2], uv[0], uv[1], uv[2]};
 	}

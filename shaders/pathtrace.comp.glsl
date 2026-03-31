@@ -72,7 +72,7 @@ vec3 trace_path(s_ray ray, inout uint seed)
 {
     vec3 throughput = vec3(1.0);
     vec3 radiance   = vec3(0.0);
-    const int MAX_BOUNCES = 8;
+    const int MAX_BOUNCES = 6;
 
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
     {

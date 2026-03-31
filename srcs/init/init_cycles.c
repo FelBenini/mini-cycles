@@ -124,16 +124,16 @@ t_cycles	init_cycles(void)
         exit(1);
     }
 	cycles.compute_program = shader_create_compute_asm("shaders/structs.comp.glsl",
-																	"shaders/triangle.comp.glsl",
-																	"shaders/mat_from_dir.comp.glsl",
-																	"shaders/intersect_aabb.comp.glsl",
-																	"shaders/blas_intersect.comp.glsl",
-																	"shaders/scene_intersect.comp.glsl",
-																	"shaders/seed.comp.glsl",
-																	"shaders/sky.comp.glsl",
-																	"shaders/sample_light.comp.glsl",
-																	"shaders/pathtrace.comp.glsl",
-																	NULL);
+														"shaders/triangle.comp.glsl",
+														"shaders/mat_from_dir.comp.glsl",
+														"shaders/intersect_aabb.comp.glsl",
+														"shaders/blas_intersect.comp.glsl",
+														"shaders/scene_intersect.comp.glsl",
+														"shaders/seed.comp.glsl",
+														"shaders/sky.comp.glsl",
+														"shaders/sample_light.comp.glsl",
+														"shaders/pathtrace.comp.glsl",
+														NULL);
 	cycles.fullscreen_program = shader_create_graphics("shaders/fullscreen.vert.glsl",
 			"shaders/fullscreen.frag.glsl");
 	cycles.tex = gen_tex();
