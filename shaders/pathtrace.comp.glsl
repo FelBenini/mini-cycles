@@ -91,15 +91,21 @@ vec3 trace_path(s_ray ray, inout uint seed)
         vec3 emission = mat.emission.rgb;
         float rough   = mat.roughness;
         vec3 direct;
+        float adaptive_bias = max(1e-4, hit.t * 1e-4);
 
         trace_textures(mat, N, hit, albedo, rough);
 
         radiance += throughput * emission;
-        if (length(emission) > 0.0) break;
-
-        float adaptive_bias = max(1e-4, hit.t * 1e-4);
+        if (length(emission) > 0.0)
+        {
+            direct = sample_lights(hit.pos, N, adaptive_bias);
+            direct += sample_emissive_meshes(hit.pos, N, adaptive_bias, seed);
+            radiance += throughput * albedo * direct;
+            break;
+        }
 
         direct = sample_lights(hit.pos, N, adaptive_bias);
+        direct += sample_emissive_meshes(hit.pos, N, adaptive_bias, seed);
         radiance += throughput * albedo * direct;
 
         rough = clamp(rough, 0.001, 1.0);

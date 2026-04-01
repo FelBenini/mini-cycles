@@ -181,6 +181,7 @@ int	main(int argc, char *argv[])
 		frame_index++;
 		snprintf(title, sizeof(title), "miniCycles | sample %u", frame_index);
 		glfwSetWindowTitle(cycles.win, title);
+		glFinish();
 		glfwSwapBuffers(cycles.win);
 		scene.camera.dirty = 0;
 	}
