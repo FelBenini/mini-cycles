@@ -2,7 +2,7 @@
 
 A Pathtracer made with C and OpenGL Compute Shader, inspired by the Blender's cycles render mechanism. It uses the montecarlo path tracing algorithm for better simulating the lighting physics and ray bounces.
 
-<img width="1710" height="613" alt="image" src="https://github.com/user-attachments/assets/88af3918-e074-44cf-9d8c-81bf2bd84fe1" />
+<img width="1281" height="654" alt="Screenshot from 2026-04-02 19-26-12" src="https://github.com/user-attachments/assets/8b8aa97d-7bae-4df3-af38-05a477500bbf" />
 
 ## Installing, compiling and running.
 
@@ -38,3 +38,10 @@ To tonemap the rendered scene, you can pass the LUT information by command line,
 ./cycles ./path/to/scene --tonemap=agx # AGX tonemapping
 ./cycles ./path/to/scene # No tonemapping
 ```
+
+## Examples
+##### ./scenes/room.rt
+<img width="1916" height="1006" alt="Screenshot from 2026-04-02 19-32-13" src="https://github.com/user-attachments/assets/d360cc33-b632-44e5-a386-7a9e64306c38" />
+
+##### ./scenes/dragon.rt
+<img width="1281" height="654" alt="Screenshot from 2026-04-02 19-26-12" src="https://github.com/user-attachments/assets/8b8aa97d-7bae-4df3-af38-05a477500bbf" />
