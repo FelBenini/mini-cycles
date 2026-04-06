@@ -96,30 +96,20 @@ vec3 trace_path(s_ray ray, inout uint seed)
         trace_textures(mat, N, hit, albedo, rough);
         rough = clamp(rough, 0.001, 1.0);
 
-        bool is_specular = rough < 0.1;
-
-        if (!prev_used_nee || is_specular)
-            radiance += throughput * emission;
+        radiance += throughput * emission;
 
         if (length(emission) > 0.0)
             break;
 
-        if (!is_specular)
-        {
-            vec3 direct = sample_lights(hit.pos, N, adaptive_bias);
-            vec3 emissive_direct = sample_emissive_meshes(hit.pos, N, adaptive_bias, seed);
+        // --- Always do NEE (no specular check)
+        vec3 direct = sample_lights(hit.pos, N, adaptive_bias);
+        vec3 emissive_direct = sample_emissive_meshes(hit.pos, N, adaptive_bias, seed);
 
-            // Clamp emissive direct to kill firefly spikes before accumulating
-            emissive_direct = min(emissive_direct, vec3(10.0));
-            direct = min(direct + emissive_direct, vec3(10.0));
+        emissive_direct = min(emissive_direct, vec3(10.0));
+        direct = min(direct + emissive_direct, vec3(10.0));
 
-            radiance += throughput * albedo * direct;
-            prev_used_nee = true;
-        }
-        else
-        {
-            prev_used_nee = false;
-        }
+        radiance += throughput * albedo * direct;
+        prev_used_nee = true;
 
         // --- Next bounce ---
         vec3 diffuse_dir = sample_hemisphere(N, seed);
@@ -135,16 +125,21 @@ vec3 trace_path(s_ray ray, inout uint seed)
         ray.dir     = new_dir;
         ray.inv_dir = 1.0 / new_dir;
 
-        vec3 F0            = mix(vec3(0.04), albedo, mat.metallic);
-        vec3 diffuse_color = albedo * (1.0 - mat.metallic);
-        throughput *= F0 + diffuse_color;
+        // --- Energy conservation
+        vec3 F0 = mix(vec3(0.04), albedo, mat.metallic);
+        float cosTheta = max(dot(N, new_dir), 0.0);
+        vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 
-        // Clamp throughput to prevent energy explosion across bounces
+        vec3 kd = (1.0 - F) * (1.0 - mat.metallic);
+
+        throughput *= (kd * albedo + F);
+
         throughput = min(throughput, vec3(1.0));
 
         if (max(throughput.r, max(throughput.g, throughput.b)) < 0.001)
             break;
 
+        // Russian roulette
         if (bounce >= 1)
         {
             float p = clamp(max(throughput.r, max(throughput.g, throughput.b)), 0.05, 0.95);
