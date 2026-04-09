@@ -3,7 +3,7 @@ SRCS := $(wildcard srcs/*.c) \
 				glad/src/glad.c
 OBJS := $(patsubst srcs/%.c,objs/%.o,$(SRCS))
 CC   := gcc
-CFLAGS := -Wall -Wextra -Werror -O2
+CFLAGS := -Wall -Wextra -Werror -O3
 INC = ./include
 INCFLAGS := -lglfw -lGL -lm
 NAME := cycles

@@ -25,6 +25,23 @@ static GLuint	gen_tex(int width, int height)
 	return (tex);
 }
 
+static GLuint	gen_preview_tex(int width, int height)
+{
+	GLuint	tex;
+	int		preview_w = width / 4;
+	int		preview_h = height / 4;
+
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, preview_w, preview_h, 0, GL_RGBA,
+		GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	return (tex);
+}
+
 GLuint	gen_lut_tex(t_lut lut)
 {
 	GLuint			tex;
@@ -69,9 +86,13 @@ void	resize_callback(GLFWwindow *win, int width, int height)
 	if (!cycles)
 		return ;
 	glDeleteTextures(1, &cycles->tex);
+	glDeleteTextures(1, &cycles->preview_tex);
 	cycles->width = width;
 	cycles->height = height;
 	cycles->tex = gen_tex(width, height);
+	cycles->preview_tex = gen_preview_tex(width, height);
+	cycles->preview_width = width / 4;
+	cycles->preview_height = height / 4;
 	glViewport(0, 0, width, height);
 	cycles->dirty = 1;
 }
@@ -87,6 +108,7 @@ t_cycles	init_cycles(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     cycles.win = glfwCreateWindow(WIDTH, HEIGHT, "miniCycles", NULL, NULL);
+	glfwSwapInterval(1);
 	cycles.width = WIDTH;
 	cycles.height = HEIGHT;
 	cycles.dirty = 0;
@@ -111,9 +133,13 @@ t_cycles	init_cycles(void)
 	cycles.fullscreen_program = shader_create_graphics("shaders/fullscreen.vert.glsl",
 			"shaders/fullscreen.frag.glsl");
 	cycles.tex = gen_tex(WIDTH, HEIGHT);
+	cycles.preview_tex = gen_preview_tex(WIDTH, HEIGHT);
+	cycles.preview_width = WIDTH / 4;
+	cycles.preview_height = HEIGHT / 4;
 	cycles.vao = gen_vao();
 	cycles.tonemap = NO_TONEMAP;
 	cycles.lut_tex = 0;
 	cycles.lut_size = 0;
+	cycles.preview = 0;
 	return (cycles);
 }

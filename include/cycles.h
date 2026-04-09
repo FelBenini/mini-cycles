@@ -28,13 +28,17 @@ typedef struct s_cycles
 	GLuint			compute_program;
 	GLuint			fullscreen_program;
 	GLuint			tex;
+	GLuint			preview_tex;
 	GLuint			vao;
 	unsigned int	tonemap;
 	GLuint			lut_tex;
 	int				lut_size;
 	int				width;
 	int				height;
+	int				preview_width;
+	int				preview_height;
 	int				dirty;
+	int				preview;
 }	t_cycles;
 
 t_cycles	init_cycles(void);

@@ -25,15 +25,24 @@ static void	render_frame(
 	GLint loc_lut_size_fs,
 	t_scene scene,
 	uint32_t frame_index,
-	uint32_t reset_samples)
+	uint32_t reset_samples,
+	int preview)
 {
+	GLuint	tex;
+	int		render_width;
+	int		render_height;
+
+	tex = preview ? cycles.preview_tex : cycles.tex;
+	render_width = preview ? cycles.preview_width : cycles.width;
+	render_height = preview ? cycles.preview_height : cycles.height;
+
 	glUseProgram(cycles.compute_program);
 
 	glUniform4f(loc_ambient_color, scene.ambient.x, scene.ambient.y, scene.ambient.z, scene.ambient.w);
 
-	glBindImageTexture(0, cycles.tex, 0, GL_FALSE, 0,
+	glBindImageTexture(0, tex, 0, GL_FALSE, 0,
 		GL_READ_WRITE, GL_RGBA32F);
-	glUniform2f(loc_resolution, (float)cycles.width, (float)cycles.height);
+	glUniform2f(loc_resolution, (float)render_width, (float)render_height);
 	glUniform1ui(loc_mesh_count, scene.mesh_count);
 	glUniform1i(loc_sky_tex, scene.sky_tex);
 	glUniform1f(loc_sky_intensity, scene.sky_intensity);
@@ -42,15 +51,16 @@ static void	render_frame(
 	glUniform1ui(loc_light_count, scene.light_count);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	glDispatchCompute((cycles.width + 7) / 8, (cycles.height + 7) / 8, 1);
+	glDispatchCompute((render_width + 7) / 8, (render_height + 7) / 8, 1);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+	glViewport(0, 0, cycles.width, cycles.height);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glUseProgram(cycles.fullscreen_program);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, cycles.tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
 	glUniform1ui(loc_accumulation_tex_fs, 0);
 	glUniform1ui(loc_tonemap_fs, cycles.tonemap);
 	glActiveTexture(GL_TEXTURE1);
@@ -89,7 +99,9 @@ int	main(int argc, char *argv[])
 	GLint	loc_light_count;
 
 	uint32_t frame_index = 0;
+	uint32_t preview_frame_index = 0;
 	uint32_t reset_samples = 1;
+	int was_preview = 1;
 
 	if (argc < 2)
 	{
@@ -138,21 +150,11 @@ int	main(int argc, char *argv[])
 	glfwShowWindow(cycles.win);
 	while (!glfwWindowShouldClose(cycles.win))
 	{
-		glfwPollEvents();
-		handle_input(cycles.win, &scene.camera);
 		if (glfwGetKey(cycles.win, GLFW_KEY_P) == GLFW_PRESS)
 			save_screenshot(cycles.width, cycles.height);
-		if (scene.camera.dirty || cycles.dirty)
-		{
-			frame_index = 0;
-			reset_samples = 1;
-		}
-		else
-		{
-			reset_samples = 0;
-			scene.camera.dirty = 0;
-		}
-		cycles.dirty = 0;
+		glfwSwapBuffers(cycles.win);
+		glfwPollEvents();
+		handle_input(cycles.win, &scene.camera);
 		if (scene.desc_dirty)
 			scene_upload_descriptors(&scene);
 		if (scene.material_dirty)
@@ -162,7 +164,31 @@ int	main(int argc, char *argv[])
 			scene_rebuild_tlas(&scene);
 			scene_upload_tlas_nodes(&scene);
 		}
+		cycles.preview = scene.camera.dirty || cycles.dirty;
+		if (scene.camera.dirty || cycles.dirty)
+		{
+			if (cycles.preview)
+				preview_frame_index = 0;
+			else
+				frame_index = 0;
+			reset_samples = 1;
+		}
+		else
+			reset_samples = 0;
+		scene.camera.dirty = 0;
+		cycles.dirty = 0;
 		upload_camera(cycles.compute_program, cam_u, &scene.camera);
+		if (was_preview && !cycles.preview)
+		{
+			frame_index = 0;
+			reset_samples = 1;
+		}
+		else if (!was_preview && cycles.preview)
+		{
+			preview_frame_index = 0;
+			reset_samples = 1;
+		}
+		was_preview = cycles.preview;
 		render_frame(
 			cycles,
 			loc_resolution,
@@ -178,13 +204,16 @@ int	main(int argc, char *argv[])
 			loc_lut_tex_fs,
 			loc_lut_size_fs,
 			scene,
-			frame_index,
-			reset_samples);
-		frame_index++;
+			cycles.preview ? preview_frame_index : frame_index,
+			reset_samples,
+			cycles.preview);
+		if (cycles.preview)
+			preview_frame_index++;
+		else
+			frame_index++;
 		snprintf(title, sizeof(title), "miniCycles | sample %u", frame_index);
 		glfwSetWindowTitle(cycles.win, title);
 		glFinish();
-		glfwSwapBuffers(cycles.win);
 		scene.camera.dirty = 0;
 	}
 	scene_destroy(&scene);
