@@ -18,8 +18,7 @@
 # define PIXELS_SSBOS 10
 
 # define NO_TONEMAP 0
-# define AGX_TONEMAP 1
-# define CUBE_LUT_TONEMAP 2
+# define CUBE_LUT_TONEMAP 1
 
 typedef struct s_cycles
 {
