@@ -23,20 +23,18 @@ make
 
 ### Tonemapping
 
-Currently the AGX tonemapping is procedurally done at the fragment shader, but you can also pass LUTs in the .cube format for better color controling. Some example .cube files are located at ´assets/lut´
+Tonemap information can be passed as a .cube file. LUT files are located at assets/lut
 
-##### ./scenes/suzanne.rt
-<img width="1958" height="769" alt="AGX_comparison" src="https://github.com/user-attachments/assets/370f61a8-69ed-4afc-856b-36e0fe50fb0d" />
-
-##### ./scenes/shapes.rt
-<img width="1332" height="1740" alt="tonemap comparison" src="https://github.com/user-attachments/assets/d8cf6bbe-b54b-46e7-8f41-c2eab43eee84" />
+##### ./scenes/lucy.rt
+<img width="1866" height="1012" alt="regular" src="https://github.com/user-attachments/assets/f9eeb5fd-18f1-4dc2-bed1-7d2933b41bd3" />
 
 
-To tonemap the rendered scene, you can pass the LUT information by command line, like the examples below.
+To tonemap the rendered scene, you can pass the LUT information on the scene file, like in the examples below.
 ```bash
-./cycles ./path/to/scene --tonemap=cube --lut=./path/to/cube-lut # Custom LUT in .cube format
-./cycles ./path/to/scene --tonemap=agx # AGX tonemapping
-./cycles ./path/to/scene # No tonemapping
+// example_scene.rt
+...
+pl  0.0,0.0,0.0   0.000,0.000,0.000   15,15,15   1000,1000 0.01
+lut path/to/cube_file
 ```
 
 ## Examples
