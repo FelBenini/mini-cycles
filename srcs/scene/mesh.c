@@ -63,10 +63,23 @@ uint32_t	scene_add_mesh(t_scene *scene, t_mesh mesh, uint32_t material_index)
 	};
 	scene->descriptors[index].position.w = compute_bounding_radius(&mesh);
 	scene->bvhs[index] = bvh_build(mesh.triangles, mesh.triangle_count);
+	if (material_index < scene->material_count
+		&& (scene->materials[material_index].emission.x > 0.0f
+			|| scene->materials[material_index].emission.y > 0.0f
+			|| scene->materials[material_index].emission.z > 0.0f))
+	{
+		if (scene->emissive_mesh_count == scene->emissive_mesh_capacity)
+		{
+			scene->emissive_mesh_capacity = scene->emissive_mesh_capacity ? scene->emissive_mesh_capacity * 2 : 8;
+			scene->emissive_mesh_indices = realloc(scene->emissive_mesh_indices, sizeof(uint32_t) * scene->emissive_mesh_capacity);
+		}
+		scene->emissive_mesh_indices[scene->emissive_mesh_count++] = index;
+	}
 	scene->gpu_dirty = 1;
 	scene->desc_dirty = 1;
 	scene->bvh_dirty = 1;
 	scene->tlas_dirty = 1;
+	scene->emissive_mesh_dirty = 1;
 	return (index);
 }
 

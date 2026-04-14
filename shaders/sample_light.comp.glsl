@@ -89,12 +89,13 @@ vec3 sample_lights(vec3 pos, vec3 normal, float bias)
 vec3 sample_emissive_meshes(vec3 pos, vec3 normal, float bias, inout uint seed)
 {
     vec3 result = vec3(0.0);
-    uint mesh_count = meshes.length();
+    uint mesh_count = u_emissive_mesh_count;
     if (mesh_count == 0u)
         return result;
 
-    for (uint mesh_idx = 0u; mesh_idx < mesh_count; mesh_idx++)
+    for (uint i = 0u; i < mesh_count; i++)
     {
+        uint mesh_idx = emissive_mesh_indices[i];
         s_mesh_descriptor mesh = meshes[mesh_idx];
         s_material        mat  = materials[mesh.material];
 

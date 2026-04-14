@@ -25,6 +25,9 @@ t_scene	scene_create(uint32_t initial_capacity)
 	glGenBuffers(1, &scene.ssbo_bvh_nodes);
 	glGenBuffers(1, &scene.ssbo_tlas_nodes);
 	glGenBuffers(1, &scene.ssbo_materials);
+	glGenBuffers(1, &scene.ssbo_emissive_meshes);
+	scene.emissive_mesh_count = 0;
+	scene.emissive_mesh_indices = NULL;
 	scene.tlas_dirty = 1;
 	return (scene);
 }

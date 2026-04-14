@@ -14,6 +14,7 @@ uniform vec4  u_ambient_color;
 uniform int   u_sky_tex;
 uniform float u_sky_intensity;
 uniform uint  u_light_count;
+uniform uint  u_emissive_mesh_count;
 // Progressive sampling control
 uniform uint u_frame_index;   // increment every frame
 uniform uint u_reset_samples; // set to 1 when camera moves
@@ -142,4 +143,7 @@ layout(std430, binding = 9) readonly buffer ImageMeta {
 };
 layout(std430, binding = 10) readonly buffer ImagePixels {
     uint pixels[];
+};
+layout(std430, binding = 11) readonly buffer EmissiveMeshIndices {
+    uint emissive_mesh_indices[];
 };

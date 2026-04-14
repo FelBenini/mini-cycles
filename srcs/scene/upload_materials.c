@@ -1,5 +1,6 @@
 #include "scene.h"
 #include "cycles.h"
+#include <stdlib.h>
 
 void	scene_upload_materials(t_scene *scene)
 {

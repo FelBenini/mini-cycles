@@ -75,6 +75,11 @@ typedef struct s_scene
 	uint32_t			light_count;
 	uint32_t			light_capacity;
 
+	uint32_t			*emissive_mesh_indices;
+	uint32_t			emissive_mesh_count;
+	uint32_t			emissive_mesh_capacity;
+
+	GLuint				ssbo_emissive_meshes;
 	GLuint				ssbo_triangles;
 	GLuint				ssbo_normals;
 	GLuint				ssbo_texcoords;
@@ -88,6 +93,7 @@ typedef struct s_scene
 	int					bvh_dirty;
 	int					tlas_dirty;
 	int					material_dirty;
+	int					emissive_mesh_dirty;
 }						t_scene;
 
 t_scene					scene_create(uint32_t initial_capacity);
@@ -117,7 +123,8 @@ int						scene_load_image(t_scene *scene, const char *path);
 void					scene_upload_images(t_scene *scene);
 void					scene_destroy_images(t_scene *scene);
 
-int						scene_add_light(t_scene *scene, t_light light);
-void					scene_upload_lights(t_scene *scene);
+int					 scene_add_light(t_scene *scene, t_light light);
+void				 scene_upload_lights(t_scene *scene);
+void				 scene_upload_emissive_meshes(t_scene *scene);
 
 #endif

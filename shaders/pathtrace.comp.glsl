@@ -72,7 +72,6 @@ vec3 trace_path(s_ray ray, inout uint seed)
 {
     vec3 throughput    = vec3(1.0);
     vec3 radiance      = vec3(0.0);
-    bool prev_used_nee = false;
     const int MAX_BOUNCES = 6;
 
     for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
@@ -110,7 +109,6 @@ vec3 trace_path(s_ray ray, inout uint seed)
         direct = min(direct + emissive_direct, vec3(10.0));
 
         radiance += throughput * albedo * direct;
-        prev_used_nee = true;
 
         // --- Next bounce ---
         vec3 diffuse_dir = sample_hemisphere(N, seed);
