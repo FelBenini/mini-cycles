@@ -2,13 +2,15 @@
 #include "cycles.h"
 #include "scene.h"
 #include "stb_image.h"
+#include "texture_cache.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-static unsigned char	**s_pixel_cache = NULL;
-static int				s_cache_count = 0;
-static int				s_cache_cap = 0;
+static unsigned char		**s_pixel_cache = NULL;
+static int					s_cache_count = 0;
+static int					s_cache_cap = 0;
+static t_texture_cache		*s_texture_cache = NULL;
 
 int	scene_load_image(t_scene *scene, const char *path)
 {
@@ -19,6 +21,7 @@ int	scene_load_image(t_scene *scene, const char *path)
 	int				new_cap;
 	unsigned char	**new_cache;
 	int				index;
+	int				cached_index;
 
 	if (!scene->images)
 	{
@@ -28,6 +31,20 @@ int	scene_load_image(t_scene *scene, const char *path)
 		scene->images->count = 0;
 		scene->images->metadata = NULL;
 		scene->images->ssbo = 0;
+	}
+	/* Initialize texture cache on first image load */
+	if (!s_texture_cache)
+	{
+		s_texture_cache = texture_cache_create(128);
+		if (!s_texture_cache)
+			return (-1);
+	}
+	/* Check if texture is already loaded (cache hit) */
+	cached_index = texture_cache_lookup(s_texture_cache, path);
+	if (cached_index != -1)
+	{
+		printf("Image reused: %s (index: %d)\n", path, cached_index);
+		return (cached_index);
 	}
 	iss = scene->images;
 	new_meta = realloc(iss->metadata, sizeof(t_image_data) * (iss->count + 1));
@@ -57,7 +74,19 @@ int	scene_load_image(t_scene *scene, const char *path)
 	s_cache_count++;
 	index = iss->count;
 	iss->count++;
+	/* Add to cache for future reuse */
+	if (texture_cache_insert(s_texture_cache, path, index) != 0)
+		printf("Warning: Failed to cache texture %s\n", path);
 	return (index);
+}
+
+static void	texture_cache_reset(void)
+{
+	if (s_texture_cache)
+	{
+		texture_cache_destroy(s_texture_cache);
+		s_texture_cache = NULL;
+	}
 }
 
 void	scene_upload_images(t_scene *scene)
@@ -139,6 +168,8 @@ void	scene_upload_images(t_scene *scene)
 	s_pixel_cache = NULL;
 	s_cache_count = 0;
 	s_cache_cap = 0;
+	/* Reset texture cache after uploading (fresh for next scene) */
+	texture_cache_reset();
 }
 
 void	scene_destroy_images(t_scene *scene)
@@ -151,6 +182,11 @@ void	scene_destroy_images(t_scene *scene)
 	s_pixel_cache = NULL;
 	s_cache_count = 0;
 	s_cache_cap = 0;
+	if (s_texture_cache)
+	{
+		texture_cache_destroy(s_texture_cache);
+		s_texture_cache = NULL;
+	}
 	if (scene->images->ssbo)
 		glDeleteBuffers(1, &scene->images->ssbo);
 	free(scene->images->metadata);
