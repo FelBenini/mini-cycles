@@ -12,6 +12,7 @@
 static void	render_frame(
 	t_cycles cycles,
 	GLint loc_resolution,
+	GLint loc_tile_offset,
 	GLint loc_mesh_count,
 	GLint loc_frame_index,
 	GLint loc_reset_samples,
@@ -33,6 +34,8 @@ static void	render_frame(
 	GLuint	tex;
 	int		render_width;
 	int		render_height;
+	int		tile_width = 32;
+	int		tile_height = 32;
 
 	tex = preview ? cycles.preview_tex : cycles.tex;
 	render_width = preview ? cycles.preview_width : cycles.width;
@@ -43,7 +46,7 @@ static void	render_frame(
 	glUniform4f(loc_ambient_color, scene.ambient.x, scene.ambient.y, scene.ambient.z, scene.ambient.w);
 
 	glBindImageTexture(0, tex, 0, GL_FALSE, 0,
-		GL_READ_WRITE, GL_RGBA32F);
+		GL_READ_WRITE, GL_RGBA16F);
 	glUniform2f(loc_resolution, (float)render_width, (float)render_height);
 	glUniform1ui(loc_mesh_count, scene.mesh_count);
 	glUniform1i(loc_sky_tex, scene.sky_tex);
@@ -55,9 +58,20 @@ static void	render_frame(
 	glUniform1i(loc_max_bounces, preview ? 3 : 6);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-	glDispatchCompute((render_width + 7) / 8, (render_height + 7) / 8, 1);
+	for (int tile_y = 0; tile_y < render_height; tile_y += tile_height)
+	{
+		for (int tile_x = 0; tile_x < render_width; tile_x += tile_width)
+		{
+			int tile_w = (tile_x + tile_width > render_width) ? render_width - tile_x : tile_width;
+			int tile_h = (tile_y + tile_height > render_height) ? render_height - tile_y : tile_height;
 
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			glUniform2f(loc_tile_offset, (float)tile_x, (float)tile_y);
+			glDispatchCompute((tile_w + 7) / 8, (tile_h + 7) / 8, 1);
+			glFinish();
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			glfwPollEvents();
+		}
+	}
 
 	glViewport(0, 0, cycles.width, cycles.height);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -90,6 +104,7 @@ int	main(int argc, char *argv[])
 	char			title[126];
 
 	GLint	loc_resolution;
+	GLint	loc_tile_offset;
 	GLint	loc_mesh_count;
 	GLint	loc_frame_index;
 	GLint	loc_reset_samples;
@@ -132,6 +147,8 @@ int	main(int argc, char *argv[])
 	cam_u = get_cam_uniform_locations(cycles.compute_program);
 	loc_resolution = glGetUniformLocation(
 		cycles.compute_program, "u_resolution");
+	loc_tile_offset = glGetUniformLocation(
+		cycles.compute_program, "u_tile_offset");
 	loc_mesh_count = glGetUniformLocation(
 		cycles.compute_program, "u_mesh_count");
 	loc_frame_index = glGetUniformLocation(
@@ -207,6 +224,7 @@ int	main(int argc, char *argv[])
 		render_frame(
 			cycles,
 			loc_resolution,
+			loc_tile_offset,
 			loc_mesh_count,
 			loc_frame_index,
 			loc_reset_samples,

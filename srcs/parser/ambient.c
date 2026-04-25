@@ -11,7 +11,7 @@ void	process_ambient(t_scene *scene, char *line)
 	intensity = 1.0f;
 	if (sscanf(line, "A %f %255s", &intensity, path) == 2 && path[0] != '-')
 	{
-		scene->sky_tex = scene_load_image(scene, path);
+		scene->sky_tex = scene_load_image(scene, path, 1);
 		scene->sky_intensity = intensity;
 		if (scene->sky_tex != -1)
 			return ;

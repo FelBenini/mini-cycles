@@ -11,7 +11,7 @@
 int	get_texture_if_valid(t_scene *scene, char *path)
 {
 	if (strlen(path) > 0)
-		return (scene_load_image(scene, path));
+		return (scene_load_image(scene, path, 0));
 	return (-1);
 }
 

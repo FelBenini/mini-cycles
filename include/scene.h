@@ -96,35 +96,35 @@ typedef struct s_scene
 	int					emissive_mesh_dirty;
 }						t_scene;
 
-t_scene					scene_create(uint32_t initial_capacity);
-void					scene_destroy(t_scene *scene);
+t_scene				scene_create(uint32_t initial_capacity);
+void				scene_destroy(t_scene *scene);
 
-uint32_t				scene_add_mesh(t_scene *scene, t_mesh mesh,
-							uint32_t material_index);
+uint32_t			scene_add_mesh(t_scene *scene, t_mesh mesh,
+						uint32_t material_index);
 
-uint32_t				scene_add_material(t_scene *scene, t_material material);
+uint32_t			scene_add_material(t_scene *scene, t_material material);
 
-void					scene_upload_triangles(t_scene *scene);
+void				scene_upload_triangles(t_scene *scene);
 
-void					scene_upload_descriptors(t_scene *scene);
+void				scene_upload_descriptors(t_scene *scene);
 
-void					scene_upload_materials(t_scene *scene);
+void				scene_upload_materials(t_scene *scene);
 
-void					scene_upload_bvh_nodes(t_scene *scene);
+void				scene_upload_bvh_nodes(t_scene *scene);
 
-void					scene_upload_tlas_nodes(t_scene *scene);
+void				scene_upload_tlas_nodes(t_scene *scene);
 
-void					scene_rebuild_tlas(t_scene *scene);
+void				scene_rebuild_tlas(t_scene *scene);
 
-void					scene_move_mesh(t_scene *scene, uint32_t index,
-							t_vec4 position);
+void				scene_move_mesh(t_scene *scene, uint32_t index,
+						t_vec4 position);
 
-int						scene_load_image(t_scene *scene, const char *path);
-void					scene_upload_images(t_scene *scene);
-void					scene_destroy_images(t_scene *scene);
+int					scene_load_image(t_scene *scene, const char *path, int is_ambient);
+void				scene_upload_images(t_scene *scene);
+void				scene_destroy_images(t_scene *scene);
 
-int					 scene_add_light(t_scene *scene, t_light light);
-void				 scene_upload_lights(t_scene *scene);
-void				 scene_upload_emissive_meshes(t_scene *scene);
+int					scene_add_light(t_scene *scene, t_light light);
+void				scene_upload_lights(t_scene *scene);
+void				scene_upload_emissive_meshes(t_scene *scene);
 
 #endif

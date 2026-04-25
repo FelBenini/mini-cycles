@@ -7,12 +7,32 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_TEX_SIZE 512
+
+static unsigned char *resize_image(unsigned char *src, int w, int h, int new_w, int new_h)
+{
+	unsigned char *dst = malloc(new_w * new_h * 4);
+	if (!dst)
+		return NULL;
+	for (int y = 0; y < new_h; y++)
+	{
+		for (int x = 0; x < new_w; x++)
+		{
+			int sx = x * w / new_w;
+			int sy = y * h / new_h;
+			for (int c = 0; c < 4; c++)
+				dst[(y * new_w + x) * 4 + c] = src[(sy * w + sx) * 4 + c];
+		}
+	}
+	return dst;
+}
+
 static unsigned char		**s_pixel_cache = NULL;
 static int					s_cache_count = 0;
 static int					s_cache_cap = 0;
 static t_texture_cache		*s_texture_cache = NULL;
 
-int	scene_load_image(t_scene *scene, const char *path)
+int	scene_load_image(t_scene *scene, const char *path, int is_ambient)
 {
 	t_image_ssbo	*iss;
 	t_image_data	*new_meta;
@@ -53,9 +73,32 @@ int	scene_load_image(t_scene *scene, const char *path)
 	iss->metadata = new_meta;
 	stbi_set_flip_vertically_on_load(1);
 	meta = &iss->metadata[iss->count];
-	pixels = stbi_load(path, &meta->width, &meta->height, &meta->channels, 4);
+
+	int w, h, c;
+	pixels = stbi_load(path, &w, &h, &c, 4);
 	if (!pixels)
 		return (-1);
+
+	printf("Image loaded: %s (%dx%d)", path, w, h);
+
+	if ((w > MAX_TEX_SIZE || h > MAX_TEX_SIZE) && !is_ambient)
+	{
+		int new_w = (w >= h) ? MAX_TEX_SIZE : (MAX_TEX_SIZE * w / h);
+		int new_h = (h > w) ? MAX_TEX_SIZE : (MAX_TEX_SIZE * h / w);
+		unsigned char *resized = resize_image(pixels, w, h, new_w, new_h);
+		if (resized)
+		{
+			stbi_image_free(pixels);
+			pixels = resized;
+			w = new_w;
+			h = new_h;
+			printf(" -> resized to %dx%d", w, h);
+		}
+	}
+	printf("\n");
+
+	meta->width = w;
+	meta->height = h;
 	meta->channels = 4;
 	if (s_cache_count >= s_cache_cap)
 	{

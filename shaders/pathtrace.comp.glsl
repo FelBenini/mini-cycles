@@ -183,7 +183,7 @@ vec3 trace_path(s_ray ray, inout uint seed)
 
 void main()
 {
-    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy) + ivec2(u_tile_offset);
     if (pixel.x >= int(u_resolution.x) ||
         pixel.y >= int(u_resolution.y))
         return;
