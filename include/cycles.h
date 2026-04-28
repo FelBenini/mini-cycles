@@ -41,8 +41,38 @@ typedef struct s_cycles
 	int				preview;
 }	t_cycles;
 
-t_cycles	init_cycles(void);
-GLuint		gen_lut_tex(t_lut lut);
-void		resize_callback(GLFWwindow *win, int width, int height);
+typedef struct s_compute_uniforms
+{
+	GLint	loc_resolution;
+	GLint	loc_tile_offset;
+	GLint	loc_mesh_count;
+	GLint	loc_frame_index;
+	GLint	loc_reset_samples;
+	GLint	loc_ambient_color;
+	GLint	loc_sky_tex;
+	GLint	loc_sky_intensity;
+	GLint	loc_light_count;
+	GLint	loc_emissive_mesh_count;
+	GLint	loc_max_bounces;
+}	t_compute_uniforms;
+
+typedef struct s_fragment_uniforms
+{
+	GLint	loc_accumulation_tex_fs;
+	GLint	loc_tonemap_fs;
+	GLint	loc_lut_tex_fs;
+	GLint	loc_lut_size_fs;
+}	t_fragment_uniforms;
+
+typedef struct s_all_uniforms
+{
+	t_compute_uniforms	compute;
+	t_fragment_uniforms	fragment;
+}	t_all_uniforms;
+
+t_cycles		init_cycles(void);
+GLuint			gen_lut_tex(t_lut lut);
+t_all_uniforms	get_all_uniform_locations(GLuint compute_program, GLuint fullscreen_program);
+void			resize_callback(GLFWwindow *win, int width, int height);
 
 #endif

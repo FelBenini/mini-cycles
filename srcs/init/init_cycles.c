@@ -97,6 +97,28 @@ void	resize_callback(GLFWwindow *win, int width, int height)
 	cycles->dirty = 1;
 }
 
+t_all_uniforms	get_all_uniform_locations(GLuint compute_program, GLuint fullscreen_program)
+{
+	t_all_uniforms	u;
+
+	u.compute.loc_resolution = glGetUniformLocation(compute_program, "u_resolution");
+	u.compute.loc_tile_offset = glGetUniformLocation(compute_program, "u_tile_offset");
+	u.compute.loc_mesh_count = glGetUniformLocation(compute_program, "u_mesh_count");
+	u.compute.loc_frame_index = glGetUniformLocation(compute_program, "u_frame_index");
+	u.compute.loc_reset_samples = glGetUniformLocation(compute_program, "u_reset_samples");
+	u.compute.loc_ambient_color = glGetUniformLocation(compute_program, "u_ambient_color");
+	u.compute.loc_sky_tex = glGetUniformLocation(compute_program, "u_sky_tex");
+	u.compute.loc_sky_intensity = glGetUniformLocation(compute_program, "u_sky_intensity");
+	u.compute.loc_light_count = glGetUniformLocation(compute_program, "u_light_count");
+	u.compute.loc_emissive_mesh_count = glGetUniformLocation(compute_program, "u_emissive_mesh_count");
+	u.compute.loc_max_bounces = glGetUniformLocation(compute_program, "u_max_bounces");
+	u.fragment.loc_accumulation_tex_fs = glGetUniformLocation(fullscreen_program, "u_accumulation_tex");
+	u.fragment.loc_tonemap_fs = glGetUniformLocation(fullscreen_program, "u_tonemap");
+	u.fragment.loc_lut_tex_fs = glGetUniformLocation(fullscreen_program, "u_lut_tex");
+	u.fragment.loc_lut_size_fs = glGetUniformLocation(fullscreen_program, "u_lut_size");
+	return (u);
+}
+
 t_cycles	init_cycles(void)
 {
 	t_cycles cycles;
