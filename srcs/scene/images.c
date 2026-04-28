@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_TEX_SIZE 512
+#define MAX_TEX_SIZE 4096
 
 static unsigned char *resize_image(unsigned char *src, int w, int h, int new_w, int new_h)
 {

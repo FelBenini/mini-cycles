@@ -34,8 +34,8 @@ static void	render_frame(
 	GLuint	tex;
 	int		render_width;
 	int		render_height;
-	int		tile_width = 32;
-	int		tile_height = 32;
+	int		tile_width = 128;
+	int		tile_height = 128;
 
 	tex = preview ? cycles.preview_tex : cycles.tex;
 	render_width = preview ? cycles.preview_width : cycles.width;
@@ -46,7 +46,7 @@ static void	render_frame(
 	glUniform4f(loc_ambient_color, scene.ambient.x, scene.ambient.y, scene.ambient.z, scene.ambient.w);
 
 	glBindImageTexture(0, tex, 0, GL_FALSE, 0,
-		GL_READ_WRITE, GL_RGBA16F);
+		GL_READ_WRITE, GL_RGBA32F);
 	glUniform2f(loc_resolution, (float)render_width, (float)render_height);
 	glUniform1ui(loc_mesh_count, scene.mesh_count);
 	glUniform1i(loc_sky_tex, scene.sky_tex);
@@ -68,11 +68,10 @@ static void	render_frame(
 			glUniform2f(loc_tile_offset, (float)tile_x, (float)tile_y);
 			glDispatchCompute((tile_w + 7) / 8, (tile_h + 7) / 8, 1);
 			glFinish();
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-			glfwPollEvents();
 		}
 	}
 
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	glViewport(0, 0, cycles.width, cycles.height);
 	glClear(GL_COLOR_BUFFER_BIT);
 

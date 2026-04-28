@@ -1,5 +1,5 @@
 layout (local_size_x = 8, local_size_y = 8) in;
-layout (binding = 0, rgba16f) uniform image2D u_output;
+layout (binding = 0, rgba32f) uniform image2D u_output;
 
 // Camera
 

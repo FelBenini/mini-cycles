@@ -16,7 +16,7 @@ static GLuint	gen_tex(int width, int height)
 	
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA,
 		GL_HALF_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -33,7 +33,7 @@ static GLuint	gen_preview_tex(int width, int height)
 	
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, preview_w, preview_h, 0, GL_RGBA,
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, preview_w, preview_h, 0, GL_RGBA,
 		GL_HALF_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
