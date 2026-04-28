@@ -15,6 +15,7 @@ void	scene_destroy(t_scene *scene)
 	free(scene->triangles);
 	free(scene->bvhs);
 	free(scene->emissive_mesh_indices);
+	free(scene->lights);
 	scene_destroy_images(scene);
 	tlas_destroy(&scene->tlas);
 	glDeleteBuffers(1, &scene->ssbo_triangles);
