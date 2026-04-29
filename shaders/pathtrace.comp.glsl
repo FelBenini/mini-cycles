@@ -23,6 +23,7 @@ void trace_textures(
     inout vec3 N,
     inout s_hit hit,
     inout vec3 albedo,
+	inout float alpha,
     inout float rough
 )
 {
@@ -32,6 +33,7 @@ void trace_textures(
     {
         vec4 tex_color = sample_image(uint(mat.texture_idx), uv);
         albedo = tex_color.rgb;
+		alpha = tex_color.a;
     }
     if (mat.texture_displacement_idx != -1)
     {
@@ -95,6 +97,7 @@ vec3 trace_path(s_ray ray, inout uint seed)
 
         vec3  N              = hit.normal;
         vec3  albedo         = mat.albedo.rgb;
+		float alpha          = 1.0;
         vec3  emission       = mat.emission.rgb;
         float rough          = mat.roughness;
         float metallic       = mat.metallic;
@@ -103,8 +106,17 @@ vec3 trace_path(s_ray ray, inout uint seed)
         float adaptive_bias  = max(1e-4, hit.t * 1e-4);
 
         // Apply textures (may modify albedo, normal, roughness)
-        trace_textures(mat, N, hit, albedo, rough);
-
+        trace_textures(mat, N, hit, albedo, alpha, rough);
+		if (alpha < 1.0)
+		{
+	    	if (rand(seed) > alpha)
+    		{
+        		// Skip the surface → continue ray
+	        	ray.origin = hit.pos + ray.dir * adaptive_bias;
+				bounce--;
+	        	continue;
+    		}
+		}
         // If we hit an emissive surface (light)
         if (length(emission) > 0.0)
         {
