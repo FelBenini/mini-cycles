@@ -108,6 +108,15 @@ struct s_image_meta {
     uint pixel_offset;
 };
 
+struct s_shade_result {
+    vec3  direct_radiance;
+    vec3  new_throughput;
+    vec3  new_dir;
+    float new_bsdf_pdf;
+    bool  is_specular;
+    bool  terminate;
+};
+
 #define LIGHT_SUN   0u
 #define LIGHT_POINT 1u
 #define LIGHT_SPOT  2u

@@ -1,23 +1,3 @@
-vec3 sample_hemisphere(vec3 N, inout uint seed)
-{
-    float r1 = rand(seed);
-    float r2 = rand(seed);
-
-    float phi       = 2.0 * 3.14159265 * r1;
-    float cos_theta = sqrt(r2);
-    float sin_theta = sqrt(1.0 - r2);
-
-    vec3 T = normalize(abs(N.x) > 0.1
-        ? cross(vec3(0,1,0), N)
-        : cross(vec3(1,0,0), N));
-    vec3 B = cross(N, T);
-
-    return normalize(
-        cos(phi) * sin_theta * T +
-        sin(phi) * sin_theta * B +
-        cos_theta * N);
-}
-
 void trace_textures(
     s_material mat,
     inout vec3 N,
@@ -72,117 +52,65 @@ void trace_textures(
 
 vec3 trace_path(s_ray ray, inout uint seed)
 {
-    vec3 throughput    = vec3(1.0);
-    vec3 radiance      = vec3(0.0);
-    const int MAX_BOUNCES = u_max_bounces;
+    vec3 throughput  = vec3(1.0);
+    vec3 radiance    = vec3(0.0);
 
-    bool   prev_specular = true;
-    float  prev_bsdf_pdf = 0.0;
-    vec3   prev_origin   = ray.origin;
+    bool  prev_specular = true;
+    float prev_bsdf_pdf = 0.0;
+    vec3  prev_origin   = ray.origin;
 
-    for (int bounce = 0; bounce < MAX_BOUNCES; bounce++)
+    for (int bounce = 0; bounce < u_max_bounces; bounce++)
     {
-        // Intersect ray with scene
         s_hit hit;
+
         if (!scene_intersect(ray, hit))
         {
-            // No hit: accumulate environment lighting and exit
             radiance += throughput * sky_color(ray);
             break;
         }
 
-        // Fetch material and geometry data
         s_mesh_descriptor mesh = meshes[hit.mesh_index];
         s_material        mat  = materials[mesh.material];
+        float adaptive_bias    = max(1e-4, hit.t * 1e-4);
 
-        vec3  N              = hit.normal;
-        vec3  albedo         = mat.albedo.rgb;
-		float alpha          = 1.0;
-        vec3  emission       = mat.emission.rgb;
-        float rough          = mat.roughness;
-        float metallic       = mat.metallic;
-
-        // Bias to avoid self-intersection (scaled by distance)
-        float adaptive_bias  = max(1e-4, hit.t * 1e-4);
-
-        // Apply textures (may modify albedo, normal, roughness)
+        // Single texture evaluation per bounce
+        vec3  N      = hit.normal;
+        vec3  albedo = mat.albedo.rgb;
+        float alpha  = 1.0;
+        float rough  = mat.roughness;
         trace_textures(mat, N, hit, albedo, alpha, rough);
-		if (alpha < 1.0)
-		{
-	    	if (rand(seed) > alpha)
-    		{
-        		// Skip the surface → continue ray
-	        	ray.origin = hit.pos + ray.dir * adaptive_bias;
-				bounce--;
-	        	continue;
-    		}
-		}
-        // If we hit an emissive surface (light)
-        if (length(emission) > 0.0)
-        {
-            // MIS weight between BSDF sampling and light sampling
-            float mis_weight = mis_emission_weight(prev_specular, prev_bsdf_pdf, prev_origin, hit);
 
-            // Accumulate emitted radiance and terminate path
-            radiance += throughput * emission * mis_weight;
-            break;
+        // Alpha test
+        if (alpha < 1.0 && rand(seed) > alpha)
+        {
+            ray.origin = hit.pos + ray.dir * adaptive_bias;
+            bounce--;
+            continue;
         }
 
-        // Direct lighting (Next Event Estimation)
-        vec3 direct = sample_lights(hit.pos, N, adaptive_bias);
+        s_shade_result res = shade_hit(
+            ray, hit, N, albedo, rough,
+            throughput, prev_specular, prev_bsdf_pdf, prev_origin, seed
+        );
 
-        // Add emissive mesh sampling with MIS
-        vec3 R = reflect(ray.dir, N);
-        direct += sample_emissive_mis(hit.pos, N, R, rough, adaptive_bias, seed);
+        radiance += res.direct_radiance;
 
-        // Accumulate direct lighting contribution
-        radiance += throughput * albedo * direct;
+        if (res.terminate)
+            break;
 
-        // Sample new direction: diffuse + glossy blend
-        vec3 diffuse_dir = sample_hemisphere(N, seed);
-        vec3 R_reflect   = reflect(ray.dir, N);
-        vec3 glossy_dir  = normalize(R_reflect + rough * sample_hemisphere(N, seed));
+        throughput = res.new_throughput;
 
-        // Ensure glossy direction is above surface
-        if (dot(glossy_dir, N) < 0.0)
-            glossy_dir = diffuse_dir;
-
-        // Interpolate between glossy and diffuse based on roughness
-        vec3 new_dir = normalize(mix(glossy_dir, diffuse_dir, rough));
-
-        // Fresnel term (Schlick approximation)
-        vec3 F0 = mix(vec3(0.04), albedo, metallic);
-        float cosTheta = max(dot(N, new_dir), 0.0);
-        vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-
-        // Diffuse weight (energy conservation)
-        vec3 kd = (1.0 - F) * (1.0 - metallic);
-
-        // Update throughput (path contribution)
-        throughput *= (kd * albedo + F);
-
-        // Clamp to avoid fireflies
-        throughput = min(throughput, vec3(1.0));
-
-        // Early termination if contribution is too small
         if (max(throughput.r, max(throughput.g, throughput.b)) < 0.001)
             break;
 
-        // Store BSDF PDF for MIS with next hit
-        prev_bsdf_pdf = eval_bsdf_pdf(N, new_dir, R_reflect, rough);
-
-        // Track whether previous bounce was specular
-        prev_specular = (rough < 0.05);
-
-        // Store previous ray origin (for MIS)
+        prev_bsdf_pdf = res.new_bsdf_pdf;
+        prev_specular = res.is_specular;
         prev_origin   = ray.origin;
 
-        // Spawn next ray (offset to avoid self-hit)
         ray.origin  = hit.pos + N * adaptive_bias;
-        ray.dir     = new_dir;
-        ray.inv_dir = 1.0 / new_dir;
+        ray.dir     = res.new_dir;
+        ray.inv_dir = 1.0 / res.new_dir;
 
-        // Russian roulette termination after first bounce
         if (bounce >= 1)
         {
             float p = clamp(max(throughput.r, max(throughput.g, throughput.b)), 0.05, 0.95);
