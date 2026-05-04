@@ -78,7 +78,6 @@ MiniCycles requires the following dependencies regardless of platform:
 | C compiler | C99-compatible | GCC, Clang, or MSVC |
 | OpenGL | 4.3+ | Compute Shader support required |
 | GLFW | 3.x | Window and input management |
-| GLEW | 2.x | OpenGL extension loading |
 | make | any | Build system |
 
 **GPU compatibility:** OpenGL 4.3 Compute Shaders require a relatively modern GPU. Generally this means NVIDIA Kepler (GTX 600 series) or newer, AMD GCN (HD 7000 series) or newer, or Intel Haswell (4th gen Core) or newer with up-to-date drivers.
@@ -90,20 +89,20 @@ MiniCycles requires the following dependencies regardless of platform:
 ```bash
 # Ubuntu/Debian
 sudo apt update
-sudo apt install build-essential libglfw3-dev libglew-dev mesa-common-dev libgl-dev
+sudo apt install build-essential libglfw3-dev mesa-common-dev libgl-dev
 
 # Fedora
-sudo dnf install gcc make glfw-devel glew-devel mesa-libGL-devel
+sudo dnf install gcc make glfw-devel mesa-libGL-devel
 
 # Arch Linux
-sudo pacman -S base-devel glfw glew mesa
+sudo pacman -S base-devel glfw mesa
 ```
 
 ---
 
 ### macOS
 
-> **⚠️ OpenGL deprecation notice:** Apple deprecated OpenGL in macOS 10.14 (Mojave) and the OpenGL stack is frozen at version 4.1 on most hardware. OpenGL 4.3 (required for Compute Shaders) is **not supported on Apple Silicon (M1/M2/M3)** and may not work on many Intel Macs either. MiniCycles does not currently run on macOS. A Metal backend is tracked in [Future Plans](#future-plans).
+> **⚠️ OpenGL deprecation notice:** Apple deprecated OpenGL in macOS 10.14 (Mojave) and the OpenGL stack is frozen at version 4.1 on most hardware. OpenGL 4.3 (required for Compute Shaders) is **not supported on Apple Silicon (M1/M2/M3)** and may not work on many Intel Macs either. MiniCycles does not currently run on macOS.
 
 If you are on an Intel Mac and want to attempt a build:
 
@@ -132,7 +131,7 @@ pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-make mingw-w64-x86_64-glfw mingw
 #### Option 2: Visual Studio
 
 1. Install [Visual Studio](https://visualstudio.microsoft.com/) with the **Desktop development with C++** workload
-2. Download GLFW from [glfw.org](https://www.glfw.org/download.html) and GLEW from [glew.sourceforge.net](https://glew.sourceforge.net/)
+2. Download GLFW from [glfw.org](https://www.glfw.org/download.html)
 3. Configure include paths and library paths in your project settings
 
 #### Option 3: WSL (Windows Subsystem for Linux)
@@ -140,7 +139,7 @@ pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-make mingw-w64-x86_64-glfw mingw
 ```bash
 # In a WSL2 terminal (Ubuntu)
 sudo apt update
-sudo apt install build-essential libglfw3-dev libglew-dev mesa-common-dev libgl-dev
+sudo apt install build-essential libglfw3-dev mesa-common-dev libgl-dev
 ```
 
 > **⚠️ WSL GPU passthrough:** Running a GPU-accelerated OpenGL app under WSL requires **WSL2 with WSLg**, which is only available on **Windows 11** (or Windows 10 build 21362+) with an up-to-date GPU driver that supports WSLg. Without this, OpenGL context creation will fail at runtime. See [Microsoft's WSLg documentation](https://github.com/microsoft/wslg) for setup instructions.
@@ -219,7 +218,12 @@ A r,g,b intensity sky_texture_path
 
 Example:
 ```
-A 135,206,235 0.1 assets/skyboxes/daysky.jpg
+A 135,206,235 0.1
+```
+or
+
+```
+A 0.1 assets/skyboxes/daysky.jpg
 ```
 
 ### Lights
@@ -249,37 +253,37 @@ L 800 255,255,255 SPOT 0.0,-1.0,0.0 0.0,10.0,0.0 0.95 0.85
 
 #### Sphere
 ```
-sp x,y,z radius r,g,b material_type roughness metallic ior
+sp x,y,z radius r,g,b material_type roughness metallic
 ```
 
 #### Plane
 ```
-pl x,y,z nx,ny,nz size_x,size_z r,g,b material_type roughness metallic ior
+pl x,y,z nx,ny,nz size_x,size_z r,g,b material_type roughness metallic
 ```
 
 #### Cube
 ```
-cb x,y,z size r,g,b material_type roughness metallic ior
+cb x,y,z size r,g,b material_type roughness metallic
 ```
 
 #### Cone
 ```
-co x,y,z radius,height stacks,slices r,g,b material_type roughness metallic ior
+co x,y,z radius,height stacks,slices r,g,b material_type roughness metallic
 ```
 
 #### Cylinder
 ```
-cy x,y,z radius,height stacks,slices r,g,b material_type roughness metallic ior
+cy x,y,z radius,height stacks,slices r,g,b material_type roughness metallic
 ```
 
 #### Torus
 ```
-to x,y,z major_radius,minor_radius stacks,slices r,g,b material_type roughness metallic ior
+to x,y,z major_radius,minor_radius stacks,slices r,g,b material_type roughness metallic
 ```
 
 #### OBJ Mesh
 ```
-obj filepath radius smooth r,g,b material_type roughness metallic ior
+obj filepath radius smooth r,g,b material_type roughness metallic
 ```
 
 | Parameter | Description |
@@ -289,8 +293,7 @@ obj filepath radius smooth r,g,b material_type roughness metallic ior
 | `material_type` | `0`=diffuse, `1`=metallic, `2`=dielectric |
 | `roughness` | Surface roughness (0.0-1.0) |
 | `metallic` | Metallic factor (0.0-1.0) |
-| `ior` | Index of refraction (dielectric only) |
-| `smooth` | `1` for smooth shading, `0` for flat |
+
 
 ### Materials and Textures
 
