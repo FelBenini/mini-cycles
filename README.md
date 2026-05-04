@@ -25,7 +25,6 @@ A physically-based path tracer written in C and OpenGL Compute Shaders, inspired
 - [Project Structure](#project-structure)
 - [Future Plans](#future-plans)
 - [Acknowledgments](#acknowledgments)
-- [License](#license)
 
 ## Features
 
@@ -343,19 +342,34 @@ Available LUTs in `assets/lut/`:
 ```
 ./cycles ./scenes/room.rt
 ```
-![Room Scene](https://github.com/user-attachments/assets/d360cc33-b632-44e5-a386-7a9e64306c38)
+<img width="1900" height="1012" alt="29" src="https://github.com/user-attachments/assets/033781e1-21a4-43af-bb4a-64a1ba507350" />
+
+
+### Suzanne Scene
+```
+./cycles ./scenes/suzanne.rt
+```
+<img width="1900" height="1012" alt="27" src="https://github.com/user-attachments/assets/08038382-dbd3-4a6d-a8a5-a57bda50c443" />
+
 
 ### Dragon Scene
 ```
 ./cycles ./scenes/dragon.rt
 ```
-![Dragon Scene](https://github.com/user-attachments/assets/8b8aa97d-7bae-4df3-af38-05a477500bbf)
+<img width="1258" height="614" alt="25" src="https://github.com/user-attachments/assets/7d7ed006-9331-41c7-8ae9-cb2e0fd45d39" />
 
 ### Lucy Scene (with LUT tonemapping)
 ```
 ./cycles ./scenes/lucy.rt
 ```
 ![Lucy Scene](https://github.com/user-attachments/assets/f9eeb5fd-18f1-4dc2-bed1-7d2933b41bd3)
+
+### Room 2 Scene
+```
+./cycles ./scenes/room2.rt
+```
+<img width="1900" height="1012" alt="31" src="https://github.com/user-attachments/assets/1d077ee4-7e1d-4f24-9aad-85a8c50fbb74" />
+
 
 ### Complex Scenes
 
@@ -397,5 +411,6 @@ mini-cycles/
 ## Acknowledgments
 
 - Inspired by [Blender Cycles](https://www.cycles-renderer.org/)
+- Montecarlo implementation learned from [Physically Based Rendering PBRT](https://pbr-book.org/4ed/contents)
 - Initial structure based on the MiniRT project from 42 School
 - BVH implementation based on standard ray tracing acceleration literature
